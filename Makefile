@@ -1,8 +1,8 @@
-#GOROOT := /usr/local/go
 GOPATH := $(shell pwd)
 GOBIN  := $(GOPATH)
 PATH   := $(GOROOT):$(PATH)
 DEPS   := github.com/pr8kerl/f5er/f5 github.com/ExpressenAB/bigip_exporter/collector github.com/prometheus/client_golang/prometheus
+VER    := 0.1.0
 
 all: bigip_exporter
 
@@ -17,16 +17,16 @@ bigip_exporter: bigip_exporter.go
 linux64: bigip_exporter.go
 		GOPATH=$(GOPATH) go fmt $^
 		GOPATH=$(GOPATH) go tool vet $^
-		GOOS=linux GOARCH=amd64 GOPATH=$(GOPATH) go build -o bigip_exporter-linux-amd64 -v $^
-		touch bigip_exporter-linux-amd64
+		GOOS=linux GOARCH=amd64 GOPATH=$(GOPATH) go build -o bigip_exporter -v $^
+		tar -zcvf bigip_exporter-$(VER).linux-amd64.tar.gz LICENSE bigip_exporter
 
 win64: bigip_exporter.go
 		GOPATH=$(GOPATH) go fmt $^
 		GOPATH=$(GOPATH) go tool vet $^
-		GOOS=windows GOARCH=amd64 GOPATH=$(GOPATH) go build -o bigip_exporter-win-amd64.exe -v $^
-		touch bigip_exporter-win-amd64.exe
+		GOOS=windows GOARCH=amd64 GOPATH=$(GOPATH) go build -o bigip_exporter.exe -v $^
+		tar -zcvf bigip_exporter-$(VER).win-amd64.tar.gz LICENSE bigip_exporter.exe
 
 .PHONY: $(DEPS) clean
 
 clean:
-	rm -f bigip_exporter bigip_exporter-win-amd64.exe bigip_exporter-linux-amd64
+	rm -f bigip_exporter bigip_exporter.exe bigip_exporter*.tar.gz
