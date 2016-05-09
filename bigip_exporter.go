@@ -41,6 +41,15 @@ func main() {
 	prometheus.MustRegister(nodeCollector)
 	prometheus.MustRegister(ruleCollector)
 	http.Handle("/metrics", prometheus.Handler())
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`<html>
+			<head><title>BIG-IP Exporter</title></head>
+			<body>
+			<h1>BIG-IP Exporter</h1>
+			<p><a href="/metrics">Metrics</a></p>
+			</body>
+			</html>`))
+	})
 	exporter_bind := *exporter_bind_address + ":" + strconv.Itoa(*exporter_bind_port)
 	log.Fatal(http.ListenAndServe(exporter_bind, nil))
 }
