@@ -6,5 +6,7 @@
 !.gitignore
 !LICENSE
 !*.go
+!.travis.yml
+!Makefile
 src
 pkg
