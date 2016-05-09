@@ -2,8 +2,9 @@
 *
 # Don't ignore directories, so we can recurse into them
 !*/
-# Don't ignore .gitignore and *.foo files
+# Don't ignore .gitignore, LICENSE and *.go files
 !.gitignore
+!LICENSE
 !*.go
 src
 pkg
