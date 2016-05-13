@@ -26,15 +26,15 @@ func NewNodeCollector(bigip *f5.Device, namespace string, partitions_list []stri
 	)
 	return nil, &nodeCollector{
 		metrics: map[string]nodeMetric{
-			"serverside_bitsOut": {
+			"serverside_bytesOut": {
 				desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, subsystem, "serverside_bits_out"),
-					"serverside_bits_out",
+					prometheus.BuildFQName(namespace, subsystem, "serverside_bytes_out"),
+					"serverside_bytes_out",
 					labelNames,
 					nil,
 				),
 				extract: func(entries f5.LBNodeStatsInnerEntries) float64 {
-					return float64(entries.Serverside_bitsOut.Value)
+					return float64(entries.Serverside_bitsOut.Value/8)
 				},
 				valueType: prometheus.CounterValue,
 			},
@@ -60,7 +60,7 @@ func NewNodeCollector(bigip *f5.Device, namespace string, partitions_list []stri
 				extract: func(entries f5.LBNodeStatsInnerEntries) float64 {
 					return float64(entries.Serverside_curConns.Value)
 				},
-				valueType: prometheus.CounterValue,
+				valueType: prometheus.GaugeValue,
 			},
 			"serverside_pktsOut": {
 				desc: prometheus.NewDesc(
@@ -110,15 +110,15 @@ func NewNodeCollector(bigip *f5.Device, namespace string, partitions_list []stri
 				},
 				valueType: prometheus.CounterValue,
 			},
-			"serverside_bitsIn": {
+			"serverside_bytesIn": {
 				desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, subsystem, "serverside_bits_in"),
-					"serverside_bits_in",
+					prometheus.BuildFQName(namespace, subsystem, "serverside_bytes_in"),
+					"serverside_bytes_in",
 					labelNames,
 					nil,
 				),
 				extract: func(entries f5.LBNodeStatsInnerEntries) float64 {
-					return float64(entries.Serverside_bitsIn.Value)
+					return float64(entries.Serverside_bitsIn.Value/8)
 				},
 				valueType: prometheus.CounterValue,
 			},
@@ -132,7 +132,7 @@ func NewNodeCollector(bigip *f5.Device, namespace string, partitions_list []stri
 				extract: func(entries f5.LBNodeStatsInnerEntries) float64 {
 					return float64(entries.CurSessions.Value)
 				},
-				valueType: prometheus.CounterValue,
+				valueType: prometheus.GaugeValue,
 			},
 			"status_availabilityState": {
 				desc: prometheus.NewDesc(
@@ -147,7 +147,7 @@ func NewNodeCollector(bigip *f5.Device, namespace string, partitions_list []stri
 					}
 					return 0
 				},
-				valueType: prometheus.CounterValue,
+				valueType: prometheus.GaugeValue,
 			},
 		},
 		bigip: bigip,

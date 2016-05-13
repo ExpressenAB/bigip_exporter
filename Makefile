@@ -18,15 +18,21 @@ linux64: bigip_exporter.go
 		GOPATH=$(GOPATH) go fmt $^
 		GOPATH=$(GOPATH) go tool vet $^
 		GOOS=linux GOARCH=amd64 GOPATH=$(GOPATH) go build -o bigip_exporter -v $^
-		tar -zcvf bigip_exporter-$(VER).linux-amd64.tar.gz LICENSE bigip_exporter
+		mkdir bigip_exporter-$(VER).linux-amd64
+		cp bigip_exporter bigip_exporter-$(VER).linux-amd64/
+		cp LICENSE bigip_exporter-$(VER).linux-amd64/
+		tar -zcvf bigip_exporter-$(VER).linux-amd64.tar.gz bigip_exporter-$(VER).linux-amd64
 
 win64: bigip_exporter.go
 		GOPATH=$(GOPATH) go fmt $^
 		GOPATH=$(GOPATH) go tool vet $^
 		GOOS=windows GOARCH=amd64 GOPATH=$(GOPATH) go build -o bigip_exporter.exe -v $^
-		tar -zcvf bigip_exporter-$(VER).win-amd64.tar.gz LICENSE bigip_exporter.exe
+		mkdir bigip_exporter-$(VER).win-amd64
+		cp bigip_exporter.exe bigip_exporter-$(VER).win-amd64/
+		cp LICENSE bigip_exporter-$(VER).win-amd64/
+		tar -zcvf bigip_exporter-$(VER).win-amd64.tar.gz bigip_exporter-$(VER).win-amd64
 
 .PHONY: $(DEPS) clean
 
 clean:
-	rm -f bigip_exporter bigip_exporter.exe bigip_exporter*.tar.gz
+	rm -rf bigip_exporter bigip_exporter.exe bigip_exporter*-amd64

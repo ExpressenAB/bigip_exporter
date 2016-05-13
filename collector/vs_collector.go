@@ -38,27 +38,27 @@ func NewVSCollector(bigip *f5.Device, namespace string, partitions_list []string
 				},
 				valueType: prometheus.CounterValue,
 			},
-			"ephemeral_bitsOut": {
+			"ephemeral_bytesOut": {
 				desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, subsystem, "ephemeral_bits_out"),
-					"ephemeral_bits_out",
+					prometheus.BuildFQName(namespace, subsystem, "ephemeral_bytes_out"),
+					"ephemeral_bytes_out",
 					labelNames,
 					nil,
 				),
 				extract: func(entries f5.LBVirtualStatsInnerEntries) float64 {
-					return float64(entries.Ephemeral_bitsOut.Value)
+					return float64(entries.Ephemeral_bitsOut.Value/8)
 				},
 				valueType: prometheus.CounterValue,
 			},
-			"clientside_bitsOut": {
+			"clientside_bytesOut": {
 				desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, subsystem, "clientside_bits_out"),
-					"clientside_bits_out",
+					prometheus.BuildFQName(namespace, subsystem, "clientside_bytes_out"),
+					"clientside_bytes_out",
 					labelNames,
 					nil,
 				),
 				extract: func(entries f5.LBVirtualStatsInnerEntries) float64 {
-					return float64(entries.Clientside_bitsOut.Value)
+					return float64(entries.Clientside_bitsOut.Value/8)
 				},
 				valueType: prometheus.CounterValue,
 			},
@@ -72,7 +72,7 @@ func NewVSCollector(bigip *f5.Device, namespace string, partitions_list []string
 				extract: func(entries f5.LBVirtualStatsInnerEntries) float64 {
 					return float64(entries.FiveMinAvgUsageRatio.Value)
 				},
-				valueType: prometheus.CounterValue,
+				valueType: prometheus.GaugeValue,
 			},
 			"fiveSecAvgUsageRatio": {
 				desc: prometheus.NewDesc(
@@ -84,7 +84,7 @@ func NewVSCollector(bigip *f5.Device, namespace string, partitions_list []string
 				extract: func(entries f5.LBVirtualStatsInnerEntries) float64 {
 					return float64(entries.FiveSecAvgUsageRatio.Value)
 				},
-				valueType: prometheus.CounterValue,
+				valueType: prometheus.GaugeValue,
 			},
 			"syncookie_syncookies": {
 				desc: prometheus.NewDesc(
@@ -144,7 +144,7 @@ func NewVSCollector(bigip *f5.Device, namespace string, partitions_list []string
 				extract: func(entries f5.LBVirtualStatsInnerEntries) float64 {
 					return float64(entries.Syncookie_syncacheCurr.Value)
 				},
-				valueType: prometheus.CounterValue,
+				valueType: prometheus.GaugeValue,
 			},
 			"csMinConnDur": {
 				desc: prometheus.NewDesc(
@@ -156,7 +156,7 @@ func NewVSCollector(bigip *f5.Device, namespace string, partitions_list []string
 				extract: func(entries f5.LBVirtualStatsInnerEntries) float64 {
 					return float64(entries.CsMinConnDur.Value)
 				},
-				valueType: prometheus.CounterValue,
+				valueType: prometheus.GaugeValue,
 			},
 			"csMeanConnDur": {
 				desc: prometheus.NewDesc(
@@ -168,7 +168,7 @@ func NewVSCollector(bigip *f5.Device, namespace string, partitions_list []string
 				extract: func(entries f5.LBVirtualStatsInnerEntries) float64 {
 					return float64(entries.CsMeanConnDur.Value)
 				},
-				valueType: prometheus.CounterValue,
+				valueType: prometheus.GaugeValue,
 			},
 			"syncookie_swsyncookieInstance": {
 				desc: prometheus.NewDesc(
@@ -240,7 +240,7 @@ func NewVSCollector(bigip *f5.Device, namespace string, partitions_list []string
 				extract: func(entries f5.LBVirtualStatsInnerEntries) float64 {
 					return float64(entries.Ephemeral_curConns.Value)
 				},
-				valueType: prometheus.CounterValue,
+				valueType: prometheus.GaugeValue,
 			},
 			"clientside_evictedConns": {
 				desc: prometheus.NewDesc(
@@ -264,7 +264,7 @@ func NewVSCollector(bigip *f5.Device, namespace string, partitions_list []string
 				extract: func(entries f5.LBVirtualStatsInnerEntries) float64 {
 					return float64(entries.OneMinAvgUsageRatio.Value)
 				},
-				valueType: prometheus.CounterValue,
+				valueType: prometheus.GaugeValue,
 			},
 			"ephemeral_evictedConns": {
 				desc: prometheus.NewDesc(
@@ -290,15 +290,15 @@ func NewVSCollector(bigip *f5.Device, namespace string, partitions_list []string
 				},
 				valueType: prometheus.CounterValue,
 			},
-			"clientside_bitsIn": {
+			"clientside_bytesIn": {
 				desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, subsystem, "clientside_bits_in"),
-					"clientside_bits_in",
+					prometheus.BuildFQName(namespace, subsystem, "clientside_bytes_in"),
+					"clientside_bytes_in",
 					labelNames,
 					nil,
 				),
 				extract: func(entries f5.LBVirtualStatsInnerEntries) float64 {
-					return float64(entries.Clientside_bitsIn.Value)
+					return float64(entries.Clientside_bitsIn.Value/8)
 				},
 				valueType: prometheus.CounterValue,
 			},
@@ -348,17 +348,17 @@ func NewVSCollector(bigip *f5.Device, namespace string, partitions_list []string
 				extract: func(entries f5.LBVirtualStatsInnerEntries) float64 {
 					return float64(entries.Clientside_curConns.Value)
 				},
-				valueType: prometheus.CounterValue,
+				valueType: prometheus.GaugeValue,
 			},
-			"ephemeral_bitsIn": {
+			"ephemeral_bytesIn": {
 				desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, subsystem, "ephemeral_bits_in"),
-					"ephemeral_bits_in",
+					prometheus.BuildFQName(namespace, subsystem, "ephemeral_bytes_in"),
+					"ephemeral_bytes_in",
 					labelNames,
 					nil,
 				),
 				extract: func(entries f5.LBVirtualStatsInnerEntries) float64 {
-					return float64(entries.Ephemeral_bitsIn.Value)
+					return float64(entries.Ephemeral_bitsIn.Value/8)
 				},
 				valueType: prometheus.CounterValue,
 			},
@@ -447,7 +447,7 @@ func NewVSCollector(bigip *f5.Device, namespace string, partitions_list []string
 					}
 					return 0
 				},
-				valueType: prometheus.CounterValue,
+				valueType: prometheus.GaugeValue,
 			},
 		},
 		bigip: bigip,

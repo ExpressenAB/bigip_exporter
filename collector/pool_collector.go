@@ -34,7 +34,7 @@ func NewPoolCollector(bigip *f5.Device, namespace string, partitions_list []stri
 					nil,
 				),
 				extract: func(entries f5.LBPoolStatsInnerEntries) float64 {
-					return float64(entries.ConnqAll_ageMax.Value)
+					return float64(entries.ConnqAll_ageMax.Value/1000)
 				},
 				valueType: prometheus.CounterValue,
 			},
@@ -48,7 +48,7 @@ func NewPoolCollector(bigip *f5.Device, namespace string, partitions_list []stri
 				extract: func(entries f5.LBPoolStatsInnerEntries) float64 {
 					return float64(entries.Serverside_curConns.Value)
 				},
-				valueType: prometheus.CounterValue,
+				valueType: prometheus.GaugeValue,
 			},
 			"minActiveMembers": {
 				desc: prometheus.NewDesc(
@@ -60,17 +60,17 @@ func NewPoolCollector(bigip *f5.Device, namespace string, partitions_list []stri
 				extract: func(entries f5.LBPoolStatsInnerEntries) float64 {
 					return float64(entries.MinActiveMembers.Value)
 				},
-				valueType: prometheus.CounterValue,
+				valueType: prometheus.GaugeValue,
 			},
-			"serverside_bitsIn": {
+			"serverside_bytesIn": {
 				desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, subsystem, "serverside_bits_in"),
-					"serverside_bits_in",
+					prometheus.BuildFQName(namespace, subsystem, "serverside_bytes_in"),
+					"serverside_bytes_in",
 					labelNames,
 					nil,
 				),
 				extract: func(entries f5.LBPoolStatsInnerEntries) float64 {
-					return float64(entries.Serverside_bitsIn.Value)
+					return float64(entries.Serverside_bitsIn.Value/8)
 				},
 				valueType: prometheus.CounterValue,
 			},
@@ -120,7 +120,7 @@ func NewPoolCollector(bigip *f5.Device, namespace string, partitions_list []stri
 				extract: func(entries f5.LBPoolStatsInnerEntries) float64 {
 					return float64(entries.Connq_depth.Value)
 				},
-				valueType: prometheus.CounterValue,
+				valueType: prometheus.GaugeValue,
 			},
 			"connqAll_depth": {
 				desc: prometheus.NewDesc(
@@ -132,7 +132,7 @@ func NewPoolCollector(bigip *f5.Device, namespace string, partitions_list []stri
 				extract: func(entries f5.LBPoolStatsInnerEntries) float64 {
 					return float64(entries.ConnqAll_depth.Value)
 				},
-				valueType: prometheus.CounterValue,
+				valueType: prometheus.GaugeValue,
 			},
 			"connqAll_ageHead": {
 				desc: prometheus.NewDesc(
@@ -142,9 +142,9 @@ func NewPoolCollector(bigip *f5.Device, namespace string, partitions_list []stri
 					nil,
 				),
 				extract: func(entries f5.LBPoolStatsInnerEntries) float64 {
-					return float64(entries.ConnqAll_ageHead.Value)
+					return float64(entries.ConnqAll_ageHead.Value/1000)
 				},
-				valueType: prometheus.CounterValue,
+				valueType: prometheus.GaugeValue,
 			},
 			"curSessions": {
 				desc: prometheus.NewDesc(
@@ -156,7 +156,7 @@ func NewPoolCollector(bigip *f5.Device, namespace string, partitions_list []stri
 				extract: func(entries f5.LBPoolStatsInnerEntries) float64 {
 					return float64(entries.CurSessions.Value)
 				},
-				valueType: prometheus.CounterValue,
+				valueType: prometheus.GaugeValue,
 			},
 			"connq_serviced": {
 				desc: prometheus.NewDesc(
@@ -190,9 +190,9 @@ func NewPoolCollector(bigip *f5.Device, namespace string, partitions_list []stri
 					nil,
 				),
 				extract: func(entries f5.LBPoolStatsInnerEntries) float64 {
-					return float64(entries.ConnqAll_ageEdm.Value)
+					return float64(entries.ConnqAll_ageEdm.Value/1000)
 				},
-				valueType: prometheus.CounterValue,
+				valueType: prometheus.GaugeValue,
 			},
 			"connq_ageHead": {
 				desc: prometheus.NewDesc(
@@ -202,9 +202,9 @@ func NewPoolCollector(bigip *f5.Device, namespace string, partitions_list []stri
 					nil,
 				),
 				extract: func(entries f5.LBPoolStatsInnerEntries) float64 {
-					return float64(entries.Connq_ageHead.Value)
+					return float64(entries.Connq_ageHead.Value/1000)
 				},
-				valueType: prometheus.CounterValue,
+				valueType: prometheus.GaugeValue,
 			},
 			"connq_ageMax": {
 				desc: prometheus.NewDesc(
@@ -214,7 +214,7 @@ func NewPoolCollector(bigip *f5.Device, namespace string, partitions_list []stri
 					nil,
 				),
 				extract: func(entries f5.LBPoolStatsInnerEntries) float64 {
-					return float64(entries.Connq_ageMax.Value)
+					return float64(entries.Connq_ageMax.Value/1000)
 				},
 				valueType: prometheus.CounterValue,
 			},
@@ -228,17 +228,17 @@ func NewPoolCollector(bigip *f5.Device, namespace string, partitions_list []stri
 				extract: func(entries f5.LBPoolStatsInnerEntries) float64 {
 					return float64(entries.Connq_ageEdm.Value)
 				},
-				valueType: prometheus.CounterValue,
+				valueType: prometheus.GaugeValue,
 			},
-			"serverside_bitsOut": {
+			"serverside_bytesOut": {
 				desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, subsystem, "serverside_bits_out"),
-					"serverside_bits_out",
+					prometheus.BuildFQName(namespace, subsystem, "serverside_bytes_out"),
+					"serverside_bytes_out",
 					labelNames,
 					nil,
 				),
 				extract: func(entries f5.LBPoolStatsInnerEntries) float64 {
-					return float64(entries.Serverside_bitsOut.Value)
+					return float64(entries.Serverside_bitsOut.Value/8)
 				},
 				valueType: prometheus.CounterValue,
 			},
@@ -250,9 +250,9 @@ func NewPoolCollector(bigip *f5.Device, namespace string, partitions_list []stri
 					nil,
 				),
 				extract: func(entries f5.LBPoolStatsInnerEntries) float64 {
-					return float64(entries.Connq_ageEma.Value)
+					return float64(entries.Connq_ageEma.Value/1000)
 				},
-				valueType: prometheus.CounterValue,
+				valueType: prometheus.GaugeValue,
 			},
 			"connqAll_ageEma": {
 				desc: prometheus.NewDesc(
@@ -262,9 +262,9 @@ func NewPoolCollector(bigip *f5.Device, namespace string, partitions_list []stri
 					nil,
 				),
 				extract: func(entries f5.LBPoolStatsInnerEntries) float64 {
-					return float64(entries.ConnqAll_ageEma.Value)
+					return float64(entries.ConnqAll_ageEma.Value/1000)
 				},
-				valueType: prometheus.CounterValue,
+				valueType: prometheus.GaugeValue,
 			},
 			"activeMemberCnt": {
 				desc: prometheus.NewDesc(
@@ -276,7 +276,7 @@ func NewPoolCollector(bigip *f5.Device, namespace string, partitions_list []stri
 				extract: func(entries f5.LBPoolStatsInnerEntries) float64 {
 					return float64(entries.ActiveMemberCnt.Value)
 				},
-				valueType: prometheus.CounterValue,
+				valueType: prometheus.GaugeValue,
 			},
 			"serverside_pktsOut": {
 				desc: prometheus.NewDesc(
@@ -315,7 +315,7 @@ func NewPoolCollector(bigip *f5.Device, namespace string, partitions_list []stri
 					}
 					return 0
 				},
-				valueType: prometheus.CounterValue,
+				valueType: prometheus.GaugeValue,
 			},
 		},
 		bigip: bigip,

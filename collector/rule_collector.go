@@ -36,7 +36,7 @@ func NewRuleCollector(bigip *f5.Device, namespace string, partitions_list []stri
 				extract: func(entries f5.LBRuleStatsInnerEntries) float64 {
 					return float64(entries.Priority.Value)
 				},
-				valueType: prometheus.CounterValue,
+				valueType: prometheus.GaugeValue,
 			},
 			"failures": {
 				desc: prometheus.NewDesc(
@@ -84,7 +84,7 @@ func NewRuleCollector(bigip *f5.Device, namespace string, partitions_list []stri
 				extract: func(entries f5.LBRuleStatsInnerEntries) float64 {
 					return float64(entries.MinCycles.Value)
 				},
-				valueType: prometheus.CounterValue,
+				valueType: prometheus.GaugeValue,
 			},
 			"maxCycles": {
 				desc: prometheus.NewDesc(
@@ -108,7 +108,7 @@ func NewRuleCollector(bigip *f5.Device, namespace string, partitions_list []stri
 				extract: func(entries f5.LBRuleStatsInnerEntries) float64 {
 					return float64(entries.AvgCycles.Value)
 				},
-				valueType: prometheus.CounterValue,
+				valueType: prometheus.GaugeValue,
 			},
 		},
 		bigip: bigip,
