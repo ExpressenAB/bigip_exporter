@@ -19,9 +19,27 @@ Flag | Description | Default
 -exporter.partitions | A comma separated list containing the partitions that should be exported | All partitions
 -exporter.namespace | The namespace used in prometheus labels | bigip
 
+## Tested versions of iControl REST API
+Currently only version 12.0.0 is tested. If you experience any problems with other versions, create an issue explaining the problem and I'll look at it as soon as possible or if you'd like to contribute with a pull request that would be greatly appreciated.
+
+## Building
+### Building for your local machine
+```
+# This presumes that you already have go installed and $GOPATH configured
+go get github.com/ExpressenAB/bigip_exporter
+cd $GOPATH/src/github.com/ExpressenAB/bigip_exporter
+go build
+```
+### Cross compilation
+Go offers possibility to cross compile the application for different use on a different OS and architecture. This is achieved by setting the environment valiables `GOOS` and `GOARCH`. If you for example want to build for linux on an amd64 architecture the `go build` step can be replaced with the following:
+```
+GOOS=linux GOARCH=amd64 go build
+```
+A list of available options for `GOOS` and `GOARCH` is available in the [documentation](https://golang.org/doc/install/source#environment)
+
 ## Limitations
 iControl REST API have been known to be pretty slow. Therefore requests to the `/metrics` endpoint may take a while to complete, around 15 seconds. Depending on the amount of configuration you have in your BIG-IP this may differ. It may therefore be necessary to tweak `scrape_interval` and `scrape_timeout` in your prometheus configuration to match this.
 
-## Eventual improvements
+## Possible improvements
 ### Gather data in the background
 Currently the data is gathered when the `/metrics` endpoint is called. This causes the request to take a few seconds before completing. This could be fixed by having a go thread that gathers data at regular intervals and that is returned upon a call to the `/metrics` endpoint. This would however go against the [guidelines](https://prometheus.io/docs/instrumenting/writing_exporters/#scheduling).
