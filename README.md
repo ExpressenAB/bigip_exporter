@@ -19,6 +19,12 @@ Flag | Description | Default
 -exporter.partitions | A comma separated list containing the partitions that should be exported | All partitions
 -exporter.namespace | The namespace used in prometheus labels | bigip
 
+## Implemented metrics
+* Virtual Server
+* Rule
+* Pool
+* Node
+
 ## Tested versions of iControl REST API
 Currently only version 12.0.0 is tested. If you experience any problems with other versions, create an issue explaining the problem and I'll look at it as soon as possible or if you'd like to contribute with a pull request that would be greatly appreciated.
 
