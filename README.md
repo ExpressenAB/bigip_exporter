@@ -43,9 +43,6 @@ GOOS=linux GOARCH=amd64 go build
 ```
 A list of available options for `GOOS` and `GOARCH` is available in the [documentation](https://golang.org/doc/install/source#environment)
 
-## Limitations
-iControl REST API have been known to be pretty slow. Therefore requests to the `/metrics` endpoint may take a while to complete, around 15 seconds. Depending on the amount of configuration you have in your BIG-IP this may differ. It may therefore be necessary to tweak `scrape_interval` and `scrape_timeout` in your prometheus configuration to match this.
-
 ## Possible improvements
 ### Gather data in the background
-Currently the data is gathered when the `/metrics` endpoint is called. This causes the request to take a few seconds before completing. This could be fixed by having a go thread that gathers data at regular intervals and that is returned upon a call to the `/metrics` endpoint. This would however go against the [guidelines](https://prometheus.io/docs/instrumenting/writing_exporters/#scheduling).
+Currently the data is gathered when the `/metrics` endpoint is called. This causes the request to take about 4-6 seconds before completing. This could be fixed by having a go thread that gathers data at regular intervals and that is returned upon a call to the `/metrics` endpoint. This would however go against the [guidelines](https://prometheus.io/docs/instrumenting/writing_exporters/#scheduling).
