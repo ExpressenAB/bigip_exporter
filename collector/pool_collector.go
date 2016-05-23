@@ -4,13 +4,16 @@ import (
 	"github.com/pr8kerl/f5er/f5"
 	"github.com/prometheus/client_golang/prometheus"
 	"log"
+	"strings"
 	"time"
 )
 
 type poolCollector struct {
-	metrics map[string]poolMetric
-	bigip   *f5.Device
-	partitions_list []string
+	metrics                   map[string]poolMetric
+	bigip                     *f5.Device
+	partitions_list           []string
+	collector_scrape_status   *prometheus.CounterVec
+	collector_scrape_duration *prometheus.SummaryVec
 }
 
 type poolMetric struct {
@@ -34,7 +37,7 @@ func NewPoolCollector(bigip *f5.Device, namespace string, partitions_list []stri
 					nil,
 				),
 				extract: func(entries f5.LBPoolStatsInnerEntries) float64 {
-					return float64(entries.ConnqAll_ageMax.Value/1000)
+					return float64(entries.ConnqAll_ageMax.Value / 1000)
 				},
 				valueType: prometheus.CounterValue,
 			},
@@ -70,7 +73,7 @@ func NewPoolCollector(bigip *f5.Device, namespace string, partitions_list []stri
 					nil,
 				),
 				extract: func(entries f5.LBPoolStatsInnerEntries) float64 {
-					return float64(entries.Serverside_bitsIn.Value/8)
+					return float64(entries.Serverside_bitsIn.Value / 8)
 				},
 				valueType: prometheus.CounterValue,
 			},
@@ -142,7 +145,7 @@ func NewPoolCollector(bigip *f5.Device, namespace string, partitions_list []stri
 					nil,
 				),
 				extract: func(entries f5.LBPoolStatsInnerEntries) float64 {
-					return float64(entries.ConnqAll_ageHead.Value/1000)
+					return float64(entries.ConnqAll_ageHead.Value / 1000)
 				},
 				valueType: prometheus.GaugeValue,
 			},
@@ -190,7 +193,7 @@ func NewPoolCollector(bigip *f5.Device, namespace string, partitions_list []stri
 					nil,
 				),
 				extract: func(entries f5.LBPoolStatsInnerEntries) float64 {
-					return float64(entries.ConnqAll_ageEdm.Value/1000)
+					return float64(entries.ConnqAll_ageEdm.Value / 1000)
 				},
 				valueType: prometheus.GaugeValue,
 			},
@@ -202,7 +205,7 @@ func NewPoolCollector(bigip *f5.Device, namespace string, partitions_list []stri
 					nil,
 				),
 				extract: func(entries f5.LBPoolStatsInnerEntries) float64 {
-					return float64(entries.Connq_ageHead.Value/1000)
+					return float64(entries.Connq_ageHead.Value / 1000)
 				},
 				valueType: prometheus.GaugeValue,
 			},
@@ -214,7 +217,7 @@ func NewPoolCollector(bigip *f5.Device, namespace string, partitions_list []stri
 					nil,
 				),
 				extract: func(entries f5.LBPoolStatsInnerEntries) float64 {
-					return float64(entries.Connq_ageMax.Value/1000)
+					return float64(entries.Connq_ageMax.Value / 1000)
 				},
 				valueType: prometheus.CounterValue,
 			},
@@ -238,7 +241,7 @@ func NewPoolCollector(bigip *f5.Device, namespace string, partitions_list []stri
 					nil,
 				),
 				extract: func(entries f5.LBPoolStatsInnerEntries) float64 {
-					return float64(entries.Serverside_bitsOut.Value/8)
+					return float64(entries.Serverside_bitsOut.Value / 8)
 				},
 				valueType: prometheus.CounterValue,
 			},
@@ -250,7 +253,7 @@ func NewPoolCollector(bigip *f5.Device, namespace string, partitions_list []stri
 					nil,
 				),
 				extract: func(entries f5.LBPoolStatsInnerEntries) float64 {
-					return float64(entries.Connq_ageEma.Value/1000)
+					return float64(entries.Connq_ageEma.Value / 1000)
 				},
 				valueType: prometheus.GaugeValue,
 			},
@@ -262,7 +265,7 @@ func NewPoolCollector(bigip *f5.Device, namespace string, partitions_list []stri
 					nil,
 				),
 				extract: func(entries f5.LBPoolStatsInnerEntries) float64 {
-					return float64(entries.ConnqAll_ageEma.Value/1000)
+					return float64(entries.ConnqAll_ageEma.Value / 1000)
 				},
 				valueType: prometheus.GaugeValue,
 			},
@@ -318,37 +321,69 @@ func NewPoolCollector(bigip *f5.Device, namespace string, partitions_list []stri
 				valueType: prometheus.GaugeValue,
 			},
 		},
-		bigip: bigip,
+		collector_scrape_status: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: namespace,
+				Name:      "collector_scrape_status",
+				Help:      "collector_scrape_status",
+			},
+			[]string{"collector"},
+		),
+		collector_scrape_duration: prometheus.NewSummaryVec(
+			prometheus.SummaryOpts{
+				Namespace: namespace,
+				Name:      "collector_scrape_duration",
+				Help:      "collector_scrape_duration",
+			},
+			[]string{"collector"},
+		),
+		bigip:           bigip,
 		partitions_list: partitions_list,
 	}
 }
 
 func (c *poolCollector) Collect(ch chan<- prometheus.Metric) {
 	start := time.Now()
-	err, pools := c.bigip.ShowPools()
+	err, allPoolStats := c.bigip.ShowAllPoolStats()
+	success := true
 	if err != nil {
-		log.Fatal(err)
-	}
-	for _, pool := range pools.Items {
-		if c.partitions_list != nil && !stringInSlice(pool.Partition, c.partitions_list) {
-			continue
-		}
-		err, poolStats := c.bigip.ShowPoolStats("/" + pool.Partition + "/" + pool.Name)
-		if err != nil {
-			log.Fatal(err)
-		}
-		lables := []string{pool.Partition, pool.Name}
-		urlKey := "https://localhost/mgmt/tm/ltm/pool/~" + pool.Partition + "~" + pool.Name + "/~" + pool.Partition + "~" + pool.Name + "/stats"
-		for _, metric := range c.metrics {
-			ch <- prometheus.MustNewConstMetric(metric.desc, metric.valueType, metric.extract(poolStats.Entries[urlKey].NestedStats.Entries), lables...)
+		success = false
+		log.Println(err)
+	} else {
+		for key, poolStats := range allPoolStats.Entries {
+			keyParts := strings.Split(key, "/")
+			path := keyParts[len(keyParts)-2]
+			pathParts := strings.Split(path, "~")
+			partition := pathParts[1]
+			poolName := pathParts[2]
+
+			if c.partitions_list != nil && !stringInSlice(partition, c.partitions_list) {
+				continue
+			}
+
+			lables := []string{partition, poolName}
+			for _, metric := range c.metrics {
+				ch <- prometheus.MustNewConstMetric(metric.desc, metric.valueType, metric.extract(poolStats.NestedStats.Entries), lables...)
+			}
 		}
 	}
 	elapsed := time.Since(start)
-	log.Printf("Getting stats took %s", elapsed)
+	if success {
+		c.collector_scrape_status.WithLabelValues("pool").Set(float64(1))
+	} else {
+		c.collector_scrape_status.WithLabelValues("pool").Set(float64(0))
+	}
+	c.collector_scrape_duration.WithLabelValues("pool").Observe(float64(elapsed.Seconds()))
+	c.collector_scrape_status.Collect(ch)
+	c.collector_scrape_duration.Collect(ch)
+	log.Printf("Pool was succes: %t", success)
+	log.Printf("Getting pool stats took %s", elapsed)
 }
 
 func (c *poolCollector) Describe(ch chan<- *prometheus.Desc) {
 	for _, metric := range c.metrics {
 		ch <- metric.desc
 	}
+	c.collector_scrape_status.Describe(ch)
+	c.collector_scrape_duration.Describe(ch)
 }

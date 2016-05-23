@@ -4,13 +4,16 @@ import (
 	"github.com/pr8kerl/f5er/f5"
 	"github.com/prometheus/client_golang/prometheus"
 	"log"
+	"strings"
 	"time"
 )
 
 type nodeCollector struct {
-	metrics map[string]nodeMetric
-	bigip   *f5.Device
-	partitions_list []string
+	metrics                   map[string]nodeMetric
+	bigip                     *f5.Device
+	partitions_list           []string
+	collector_scrape_status   *prometheus.CounterVec
+	collector_scrape_duration *prometheus.SummaryVec
 }
 
 type nodeMetric struct {
@@ -34,7 +37,7 @@ func NewNodeCollector(bigip *f5.Device, namespace string, partitions_list []stri
 					nil,
 				),
 				extract: func(entries f5.LBNodeStatsInnerEntries) float64 {
-					return float64(entries.Serverside_bitsOut.Value/8)
+					return float64(entries.Serverside_bitsOut.Value / 8)
 				},
 				valueType: prometheus.CounterValue,
 			},
@@ -118,7 +121,7 @@ func NewNodeCollector(bigip *f5.Device, namespace string, partitions_list []stri
 					nil,
 				),
 				extract: func(entries f5.LBNodeStatsInnerEntries) float64 {
-					return float64(entries.Serverside_bitsIn.Value/8)
+					return float64(entries.Serverside_bitsIn.Value / 8)
 				},
 				valueType: prometheus.CounterValue,
 			},
@@ -150,37 +153,69 @@ func NewNodeCollector(bigip *f5.Device, namespace string, partitions_list []stri
 				valueType: prometheus.GaugeValue,
 			},
 		},
-		bigip: bigip,
+		collector_scrape_status: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: namespace,
+				Name:      "collector_scrape_status",
+				Help:      "collector_scrape_status",
+			},
+			[]string{"collector"},
+		),
+		collector_scrape_duration: prometheus.NewSummaryVec(
+			prometheus.SummaryOpts{
+				Namespace: namespace,
+				Name:      "collector_scrape_duration",
+				Help:      "collector_scrape_duration",
+			},
+			[]string{"collector"},
+		),
+		bigip:           bigip,
 		partitions_list: partitions_list,
 	}
 }
 
 func (c *nodeCollector) Collect(ch chan<- prometheus.Metric) {
 	start := time.Now()
-	err, nodes := c.bigip.ShowNodes()
+	err, allNodeStats := c.bigip.ShowAllNodeStats()
+	success := true
 	if err != nil {
-		log.Fatal(err)
-	}
-	for _, node := range nodes.Items {
-		if c.partitions_list != nil && !stringInSlice(node.Partition, c.partitions_list) {
-			continue
-		}
-		err, nodeStats := c.bigip.ShowNodeStats("/" + node.Partition + "/" + node.Name)
-		if err != nil {
-			log.Fatal(err)
-		}
-		lables := []string{node.Partition, node.Name}
-		urlKey := "https://localhost/mgmt/tm/ltm/node/~" + node.Partition + "~" + node.Name + "/~" + node.Partition + "~" + node.Name + "/stats"
-		for _, metric := range c.metrics {
-			ch <- prometheus.MustNewConstMetric(metric.desc, metric.valueType, metric.extract(nodeStats.Entries[urlKey].NestedStats.Entries), lables...)
+		success = false
+		log.Println(err)
+	} else {
+		for key, nodeStats := range allNodeStats.Entries {
+			keyParts := strings.Split(key, "/")
+			path := keyParts[len(keyParts)-2]
+			pathParts := strings.Split(path, "~")
+			partition := pathParts[1]
+			nodeName := pathParts[2]
+
+			if c.partitions_list != nil && !stringInSlice(partition, c.partitions_list) {
+				continue
+			}
+
+			lables := []string{partition, nodeName}
+			for _, metric := range c.metrics {
+				ch <- prometheus.MustNewConstMetric(metric.desc, metric.valueType, metric.extract(nodeStats.NestedStats.Entries), lables...)
+			}
 		}
 	}
 	elapsed := time.Since(start)
-	log.Printf("Getting stats took %s", elapsed)
+	if success {
+		c.collector_scrape_status.WithLabelValues("node").Set(float64(1))
+	} else {
+		c.collector_scrape_status.WithLabelValues("node").Set(float64(0))
+	}
+	c.collector_scrape_duration.WithLabelValues("node").Observe(float64(elapsed.Seconds()))
+	c.collector_scrape_status.Collect(ch)
+	c.collector_scrape_duration.Collect(ch)
+	log.Printf("Node was succes: %t", success)
+	log.Printf("Getting node stats took %s", elapsed)
 }
 
 func (c *nodeCollector) Describe(ch chan<- *prometheus.Desc) {
 	for _, metric := range c.metrics {
 		ch <- metric.desc
 	}
+	c.collector_scrape_status.Describe(ch)
+	c.collector_scrape_duration.Describe(ch)
 }

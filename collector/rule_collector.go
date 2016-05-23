@@ -4,13 +4,16 @@ import (
 	"github.com/pr8kerl/f5er/f5"
 	"github.com/prometheus/client_golang/prometheus"
 	"log"
+	"strings"
 	"time"
 )
 
 type ruleCollector struct {
-	metrics map[string]ruleMetric
-	bigip   *f5.Device
-	partitions_list []string
+	metrics                   map[string]ruleMetric
+	bigip                     *f5.Device
+	partitions_list           []string
+	collector_scrape_status   *prometheus.CounterVec
+	collector_scrape_duration *prometheus.SummaryVec
 }
 
 type ruleMetric struct {
@@ -111,37 +114,69 @@ func NewRuleCollector(bigip *f5.Device, namespace string, partitions_list []stri
 				valueType: prometheus.GaugeValue,
 			},
 		},
-		bigip: bigip,
+		collector_scrape_status: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: namespace,
+				Name:      "collector_scrape_status",
+				Help:      "collector_scrape_status",
+			},
+			[]string{"collector"},
+		),
+		collector_scrape_duration: prometheus.NewSummaryVec(
+			prometheus.SummaryOpts{
+				Namespace: namespace,
+				Name:      "collector_scrape_duration",
+				Help:      "collector_scrape_duration",
+			},
+			[]string{"collector"},
+		),
+		bigip:           bigip,
 		partitions_list: partitions_list,
 	}
 }
 
 func (c *ruleCollector) Collect(ch chan<- prometheus.Metric) {
 	start := time.Now()
-	err, rules := c.bigip.ShowRules()
+	err, allRuleStats := c.bigip.ShowAllRuleStats()
+	success := true
 	if err != nil {
-		log.Fatal(err)
-	}
-	for _, rule := range rules.Items {
-		if c.partitions_list != nil && !stringInSlice(rule.Partition, c.partitions_list) {
-			continue
-		}
-		err, ruleStats := c.bigip.ShowRuleStats("/" + rule.Partition + "/" + rule.Name)
-		if err != nil {
-			log.Fatal(err)
-		}
-		lables := []string{rule.Partition, rule.Name}
-		urlKey := "https://localhost/mgmt/tm/ltm/rule/~" + rule.Partition + "~" + rule.Name + "/~" + rule.Partition + "~" + rule.Name + ":HTTP_REQUEST/stats"
-		for _, metric := range c.metrics {
-			ch <- prometheus.MustNewConstMetric(metric.desc, metric.valueType, metric.extract(ruleStats.Entries[urlKey].NestedStats.Entries), lables...)
+		success = false
+		log.Println(err)
+	} else {
+		for key, ruleStats := range allRuleStats.Entries {
+			keyParts := strings.Split(key, "/")
+			path := keyParts[len(keyParts)-2]
+			pathParts := strings.Split(path, "~")
+			partition := pathParts[1]
+			ruleName := strings.Split(pathParts[2], ":")[0]
+
+			if c.partitions_list != nil && !stringInSlice(partition, c.partitions_list) {
+				continue
+			}
+
+			lables := []string{partition, ruleName}
+			for _, metric := range c.metrics {
+				ch <- prometheus.MustNewConstMetric(metric.desc, metric.valueType, metric.extract(ruleStats.NestedStats.Entries), lables...)
+			}
 		}
 	}
 	elapsed := time.Since(start)
-	log.Printf("Getting stats took %s", elapsed)
+	if success {
+		c.collector_scrape_status.WithLabelValues("rule").Set(float64(1))
+	} else {
+		c.collector_scrape_status.WithLabelValues("rule").Set(float64(0))
+	}
+	c.collector_scrape_duration.WithLabelValues("rule").Observe(float64(elapsed.Seconds()))
+	c.collector_scrape_status.Collect(ch)
+	c.collector_scrape_duration.Collect(ch)
+	log.Printf("Rule was succes: %t", success)
+	log.Printf("Getting rule stats took %s", elapsed)
 }
 
 func (c *ruleCollector) Describe(ch chan<- *prometheus.Desc) {
 	for _, metric := range c.metrics {
 		ch <- metric.desc
 	}
+	c.collector_scrape_status.Describe(ch)
+	c.collector_scrape_duration.Describe(ch)
 }

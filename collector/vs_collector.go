@@ -4,13 +4,16 @@ import (
 	"github.com/pr8kerl/f5er/f5"
 	"github.com/prometheus/client_golang/prometheus"
 	"log"
+	"strings"
 	"time"
 )
 
 type vsCollector struct {
-	metrics map[string]vsMetric
-	bigip   *f5.Device
-	partitions_list []string
+	metrics                   map[string]vsMetric
+	bigip                     *f5.Device
+	partitions_list           []string
+	collector_scrape_status   *prometheus.CounterVec
+	collector_scrape_duration *prometheus.SummaryVec
 }
 
 type vsMetric struct {
@@ -46,7 +49,7 @@ func NewVSCollector(bigip *f5.Device, namespace string, partitions_list []string
 					nil,
 				),
 				extract: func(entries f5.LBVirtualStatsInnerEntries) float64 {
-					return float64(entries.Ephemeral_bitsOut.Value/8)
+					return float64(entries.Ephemeral_bitsOut.Value / 8)
 				},
 				valueType: prometheus.CounterValue,
 			},
@@ -58,7 +61,7 @@ func NewVSCollector(bigip *f5.Device, namespace string, partitions_list []string
 					nil,
 				),
 				extract: func(entries f5.LBVirtualStatsInnerEntries) float64 {
-					return float64(entries.Clientside_bitsOut.Value/8)
+					return float64(entries.Clientside_bitsOut.Value / 8)
 				},
 				valueType: prometheus.CounterValue,
 			},
@@ -298,7 +301,7 @@ func NewVSCollector(bigip *f5.Device, namespace string, partitions_list []string
 					nil,
 				),
 				extract: func(entries f5.LBVirtualStatsInnerEntries) float64 {
-					return float64(entries.Clientside_bitsIn.Value/8)
+					return float64(entries.Clientside_bitsIn.Value / 8)
 				},
 				valueType: prometheus.CounterValue,
 			},
@@ -358,7 +361,7 @@ func NewVSCollector(bigip *f5.Device, namespace string, partitions_list []string
 					nil,
 				),
 				extract: func(entries f5.LBVirtualStatsInnerEntries) float64 {
-					return float64(entries.Ephemeral_bitsIn.Value/8)
+					return float64(entries.Ephemeral_bitsIn.Value / 8)
 				},
 				valueType: prometheus.CounterValue,
 			},
@@ -450,37 +453,69 @@ func NewVSCollector(bigip *f5.Device, namespace string, partitions_list []string
 				valueType: prometheus.GaugeValue,
 			},
 		},
-		bigip: bigip,
+		collector_scrape_status: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: namespace,
+				Name:      "collector_scrape_status",
+				Help:      "collector_scrape_status",
+			},
+			[]string{"collector"},
+		),
+		collector_scrape_duration: prometheus.NewSummaryVec(
+			prometheus.SummaryOpts{
+				Namespace: namespace,
+				Name:      "collector_scrape_duration",
+				Help:      "collector_scrape_duration",
+			},
+			[]string{"collector"},
+		),
+		bigip:           bigip,
 		partitions_list: partitions_list,
 	}
 }
 
 func (c *vsCollector) Collect(ch chan<- prometheus.Metric) {
 	start := time.Now()
-	err, virtualServers := c.bigip.ShowVirtuals()
+	err, allVirtualServerStats := c.bigip.ShowAllVirtualStats()
+	success := true
 	if err != nil {
-		log.Fatal(err)
-	}
-	for _, virtualServer := range virtualServers.Items {
-		if c.partitions_list != nil && !stringInSlice(virtualServer.Partition, c.partitions_list) {
-			continue
-		}
-		err, virtualStats := c.bigip.ShowVirtualStats("/" + virtualServer.Partition + "/" + virtualServer.Name)
-		if err != nil {
-			log.Fatal(err)
-		}
-		lables := []string{virtualServer.Partition, virtualServer.Name}
-		urlKey := "https://localhost/mgmt/tm/ltm/virtual/~" + virtualServer.Partition + "~" + virtualServer.Name + "/~" + virtualServer.Partition + "~" + virtualServer.Name + "/stats"
-		for _, metric := range c.metrics {
-			ch <- prometheus.MustNewConstMetric(metric.desc, metric.valueType, metric.extract(virtualStats.Entries[urlKey].NestedStats.Entries), lables...)
+		success = false
+		log.Println(err)
+	} else {
+		for key, virtualStats := range allVirtualServerStats.Entries {
+			keyParts := strings.Split(key, "/")
+			path := keyParts[len(keyParts)-2]
+			pathParts := strings.Split(path, "~")
+			partition := pathParts[1]
+			vsName := pathParts[2]
+
+			if c.partitions_list != nil && !stringInSlice(partition, c.partitions_list) {
+				continue
+			}
+
+			lables := []string{partition, vsName}
+			for _, metric := range c.metrics {
+				ch <- prometheus.MustNewConstMetric(metric.desc, metric.valueType, metric.extract(virtualStats.NestedStats.Entries), lables...)
+			}
 		}
 	}
 	elapsed := time.Since(start)
-	log.Printf("Getting stats took %s", elapsed)
+	if success {
+		c.collector_scrape_status.WithLabelValues("vs").Set(float64(1))
+	} else {
+		c.collector_scrape_status.WithLabelValues("vs").Set(float64(0))
+	}
+	c.collector_scrape_duration.WithLabelValues("vs").Observe(float64(elapsed.Seconds()))
+	c.collector_scrape_status.Collect(ch)
+	c.collector_scrape_duration.Collect(ch)
+	log.Printf("VS was succes: %t", success)
+	log.Printf("Getting VS stats took %s", elapsed)
 }
 
 func (c *vsCollector) Describe(ch chan<- *prometheus.Desc) {
 	for _, metric := range c.metrics {
 		ch <- metric.desc
 	}
+	c.collector_scrape_status.Describe(ch)
+	c.collector_scrape_duration.Describe(ch)
 }
