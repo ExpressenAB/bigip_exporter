@@ -1,6 +1,9 @@
 # BIG-IP exporter
 Prometheus exporter for BIG-IP statistics. Uses iControl REST API.
 
+## Get it
+The latest version is 0.2.1 and all releases can be found under [Releases](https://github.com/ExpressenAB/bigip_exporter/releases).
+
 ## Usage
 The bigip_exporter is easy to use. Example: 
 ```
@@ -24,6 +27,9 @@ Flag | Description | Default
 * Rule
 * Pool
 * Node
+
+## Prerequisites
+* User with read access to iControl REST API
 
 ## Tested versions of iControl REST API
 Currently only version 12.0.0 is tested. If you experience any problems with other versions, create an issue explaining the problem and I'll look at it as soon as possible or if you'd like to contribute with a pull request that would be greatly appreciated.
