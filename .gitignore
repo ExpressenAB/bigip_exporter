@@ -4,9 +4,11 @@
 !*/
 # Don't ignore .gitignore, LICENSE and *.go files
 !.gitignore
+!.dockerignore
 !LICENSE
 !*.go
 !.travis.yml
 !Makefile
+!Dockerfile
 src
 pkg
