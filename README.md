@@ -2,7 +2,7 @@
 Prometheus exporter for BIG-IP statistics. Uses iControl REST API.
 
 ## Get it
-The latest version is 0.2.2. All releases can be found under [Releases](https://github.com/ExpressenAB/bigip_exporter/releases) and docker images are available at [Docker Hub](https://hub.docker.com/r/expressenab/bigip_exporter/tags/)(Thanks to @0x46616c6b).
+The latest version is 0.2.2. All releases can be found under [Releases](https://github.com/ExpressenAB/bigip_exporter/releases) and docker images are available at [Docker Hub](https://hub.docker.com/r/expressenab/bigip_exporter/tags/)(Thanks to [0x46616c6b](https://github.com/0x46616c6b)).
 
 ## Usage
 The bigip_exporter is easy to use. Example: 
