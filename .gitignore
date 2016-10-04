@@ -8,5 +8,6 @@
 !*.go
 !.travis.yml
 !Makefile
+!vendor/**
 src
 pkg
