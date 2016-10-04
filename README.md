@@ -35,17 +35,18 @@ Flag | Description | Default
 Currently only version 12.0.0 is tested. If you experience any problems with other versions, create an issue explaining the problem and I'll look at it as soon as possible or if you'd like to contribute with a pull request that would be greatly appreciated.
 
 ## Building
-### Building for your local machine
+### Building locally
+This project uses [govendor](https://github.com/kardianos/govendor). If you do not already have that installed, take a detour and install that beforehand.
 ```
-# This presumes that you already have go installed and $GOPATH configured
+# This assumes that you already have go and govendor installed and $GOPATH configured
 go get github.com/ExpressenAB/bigip_exporter
 cd $GOPATH/src/github.com/ExpressenAB/bigip_exporter
-go build
+govendor build +p
 ```
 ### Cross compilation
 Go offers possibility to cross compile the application for different use on a different OS and architecture. This is achieved by setting the environment valiables `GOOS` and `GOARCH`. If you for example want to build for linux on an amd64 architecture the `go build` step can be replaced with the following:
 ```
-GOOS=linux GOARCH=amd64 go build
+GOOS=linux GOARCH=amd64 govendor build +p
 ```
 A list of available options for `GOOS` and `GOARCH` is available in the [documentation](https://golang.org/doc/install/source#environment)
 
