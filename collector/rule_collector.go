@@ -25,7 +25,7 @@ type ruleMetric struct {
 func NewRuleCollector(bigip *f5.Device, namespace string, partitions_list []string) (error, *ruleCollector) {
 	var (
 		subsystem  = "rule"
-		labelNames = []string{"partition", "rule"}
+		labelNames = []string{"partition", "rule", "event"}
 	)
 	return nil, &ruleCollector{
 		metrics: map[string]ruleMetric{
@@ -148,13 +148,15 @@ func (c *ruleCollector) Collect(ch chan<- prometheus.Metric) {
 			path := keyParts[len(keyParts)-2]
 			pathParts := strings.Split(path, "~")
 			partition := pathParts[1]
-			ruleName := strings.Split(pathParts[2], ":")[0]
+			eventParts := strings.Split(pathParts[2], ":")
+			ruleName := eventParts[0]
+			event := eventParts[1]
 
 			if c.partitions_list != nil && !stringInSlice(partition, c.partitions_list) {
 				continue
 			}
 
-			lables := []string{partition, ruleName}
+			lables := []string{partition, ruleName, event}
 			for _, metric := range c.metrics {
 				ch <- prometheus.MustNewConstMetric(metric.desc, metric.valueType, metric.extract(ruleStats.NestedStats.Entries), lables...)
 			}
