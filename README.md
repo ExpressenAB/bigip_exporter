@@ -2,12 +2,16 @@
 Prometheus exporter for BIG-IP statistics. Uses iControl REST API.
 
 ## Get it
-The latest version is 0.2.1 and all releases can be found under [Releases](https://github.com/ExpressenAB/bigip_exporter/releases).
+The latest version is 0.2.2. All releases can be found under [Releases](https://github.com/ExpressenAB/bigip_exporter/releases) and docker images are available at [Docker Hub](https://hub.docker.com/r/expressenab/bigip_exporter/tags/).
 
 ## Usage
 The bigip_exporter is easy to use. Example: 
 ```
-./bigip_exporter -bigip.host 127.0.0.1 -bigip.port 443 -bigip.username admin -bigip.password admin
+./bigip_exporter -bigip.host <bigip-host> -bigip.port 443 -bigip.username admin -bigip.password admin
+```
+Or, if you prefer, you can run it in a docker container
+```
+docker run -p 9142:9142 expressenab/bigip_exporter -bigip.host <bigip-host> -bigip.port 443 -bigip.username admin -bigip.password admin
 ```
 
 ### Flags
