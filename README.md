@@ -17,6 +17,7 @@ docker run -p 9142:9142 expressenab/bigip_exporter -bigip.host <bigip-host> -big
 ### Flags
 Flag | Description | Default
 -----|-------------|---------
+-bigip.basic_auth | Use HTTP Basic instead of Token for authentication | localhost
 -bigip.host | BIG-IP host | localhost
 -bigip.port | BIG-IP port | 443
 -bigip.username | BIG-IP username | user
