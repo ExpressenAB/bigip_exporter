@@ -12,6 +12,7 @@ import (
 )
 
 var (
+	bigip_basic_auth      = flag.Bool("bigip.basic_auth",false, "Use HTTP Basic authentication")
 	bigip_host            = flag.String("bigip.host", "localhost", "The host on which f5 resides")
 	bigip_port            = flag.Int("bigip.port", 443, "The port which f5 listens to")
 	bigip_username        = flag.String("bigip.username", "user", "Username")
@@ -46,7 +47,11 @@ func main() {
 	} else {
 		exporter_partitions_list = nil
 	}
-	bigip := f5.New(bigip_endpoint, *bigip_username, *bigip_password, f5.TOKEN)
+	auth_method:=f5.TOKEN
+	if *bigip_basic_auth {
+	  auth_method=f5.BASIC_AUTH
+	}
+	bigip := f5.New(bigip_endpoint, *bigip_username, *bigip_password, auth_method)
 
 	_, bigipCollector := collector.NewBigIpCollector(bigip, exporter_namespace, exporter_partitions_list)
 
