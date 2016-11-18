@@ -148,7 +148,7 @@ func (c *ruleCollector) Collect(ch chan<- prometheus.Metric) {
 			path := keyParts[len(keyParts)-2]
 			pathParts := strings.Split(path, "~")
 			partition := pathParts[1]
-			eventParts := strings.Split(pathParts[2], ":")
+			eventParts := strings.Split(pathParts[len(pathParts)-1], ":")
 			ruleName := eventParts[0]
 			event := eventParts[1]
 
