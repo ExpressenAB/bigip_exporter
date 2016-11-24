@@ -1,0 +1,3 @@
+---
+bigip_username: "config_user"
+bigip_password: "config_pass"

@@ -8,7 +8,14 @@ The latest version is 0.2.2. All releases can be found under [Releases](https://
 The bigip_exporter is easy to use. Example: 
 ```
 ./bigip_exporter -bigip.host <bigip-host> -bigip.port 443 -bigip.username admin -bigip.password admin
+
 ```
+Alternatively, passing a configuration file to read username and password from:
+```
+./bigip_exporter -bigip.host <bigip-host> -bigip.port 443 -exporter.config my_config_file.yml
+```
+NOTE: Username and password passed on the command line override the ones in the config file
+
 Or, if you prefer, you can run it in a docker container
 ```
 docker run -p 9142:9142 expressenab/bigip_exporter -bigip.host <bigip-host> -bigip.port 443 -bigip.username admin -bigip.password admin
@@ -26,6 +33,7 @@ Flag | Description | Default
 -exporter.bind_port | Which port the exporter should listen on | 9142
 -exporter.partitions | A comma separated list containing the partitions that should be exported | All partitions
 -exporter.namespace | The namespace used in prometheus labels | bigip
+-exporter.config | A path to a yaml configuration file containing username and password (or just one of the two) | bigip_exporter.yml
 
 ## Implemented metrics
 * Virtual Server
@@ -37,7 +45,8 @@ Flag | Description | Default
 * User with read access to iControl REST API
 
 ## Tested versions of iControl REST API
-Currently only version 12.0.0 is tested. If you experience any problems with other versions, create an issue explaining the problem and I'll look at it as soon as possible or if you'd like to contribute with a pull request that would be greatly appreciated.
+Currently only version 12.0.0 and 12.1.1 is tested. If you experience any problems with other versions, create an issue explaining the problem and I'll look at it as soon as possible or if you'd like to contribute with a pull request that would be greatly appreciated.
+NOTE: Argument passed on the command line take precedence over the configuration file.
 
 ## Building
 ### Building locally
