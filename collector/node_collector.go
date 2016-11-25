@@ -187,7 +187,7 @@ func (c *nodeCollector) Collect(ch chan<- prometheus.Metric) {
 			path := keyParts[len(keyParts)-2]
 			pathParts := strings.Split(path, "~")
 			partition := pathParts[1]
-			nodeName := pathParts[2]
+			nodeName := pathParts[len(pathParts)-1]
 
 			if c.partitions_list != nil && !stringInSlice(partition, c.partitions_list) {
 				continue
