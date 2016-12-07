@@ -10,11 +10,11 @@ The bigip_exporter is easy to use. Example:
 ./bigip_exporter -bigip.host <bigip-host> -bigip.port 443 -bigip.username admin -bigip.password admin
 
 ```
-Alternatively, passing a configuration file to read username and password from:
+Alternatively, passing a configuration file:
 ```
 ./bigip_exporter -bigip.host <bigip-host> -bigip.port 443 -exporter.config my_config_file.yml
 ```
-NOTE: Username and password passed on the command line override the ones in the config file
+NOTE: The configuration file can contain just a subset of all options and it will override command line arguments.
 
 Or, if you prefer, you can run it in a docker container
 ```
@@ -33,7 +33,8 @@ Flag | Description | Default
 -exporter.bind_port | Which port the exporter should listen on | 9142
 -exporter.partitions | A comma separated list containing the partitions that should be exported | All partitions
 -exporter.namespace | The namespace used in prometheus labels | bigip
--exporter.config | A path to a yaml configuration file containing username and password (or just one of the two) | bigip_exporter.yml
+-exporter.config | A path to a yaml configuration file | none
+-exporter.debug | Print configuration on startup | False
 
 ## Implemented metrics
 * Virtual Server

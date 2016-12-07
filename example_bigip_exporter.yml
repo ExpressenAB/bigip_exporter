@@ -1,3 +1,13 @@
 ---
-bigip_username: "config_user"
-bigip_password: "config_pass"
+bigip_config:
+  bigip_username: "config_username"
+  bigip_password:   "config_password"
+  bigip_basic_auth:   False
+  bigip_host:       "config_localhost"
+  bigip_port:       443
+exporter_config:
+  exporter_bind_address: "0.0.0.0"  
+  exporter_bind_port:   9142
+  exporter_partitions:   "config_some_partition"
+  exporter_namespace:    "config_bigip_namespace"
+  exporter_debug:        False
