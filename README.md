@@ -46,8 +46,7 @@ Flag | Description | Default
 * User with read access to iControl REST API
 
 ## Tested versions of iControl REST API
-Currently only version 12.0.0 and 12.1.1 is tested. If you experience any problems with other versions, create an issue explaining the problem and I'll look at it as soon as possible or if you'd like to contribute with a pull request that would be greatly appreciated.
-NOTE: Argument passed on the command line take precedence over the configuration file.
+Currently only version 12.0.0 and 12.1.1 are tested. If you experience any problems with other versions, create an issue explaining the problem and I'll look at it as soon as possible or if you'd like to contribute with a pull request that would be greatly appreciated.
 
 ## Building
 ### Building locally
