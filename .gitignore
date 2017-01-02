@@ -11,5 +11,6 @@
 !Makefile
 !vendor/**
 !Dockerfile
+!example_bigip_exporter.yml
 src
 pkg

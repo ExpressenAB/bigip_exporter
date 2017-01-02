@@ -1,26 +1,15 @@
 package main
 
 import (
-	"flag"
-	"github.com/ExpressenAB/bigip_exporter/collector"
-	"github.com/pr8kerl/f5er/f5"
-	"github.com/prometheus/client_golang/prometheus"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
-)
 
-var (
-	bigip_basic_auth      = flag.Bool("bigip.basic_auth",false, "Use HTTP Basic authentication")
-	bigip_host            = flag.String("bigip.host", "localhost", "The host on which f5 resides")
-	bigip_port            = flag.Int("bigip.port", 443, "The port which f5 listens to")
-	bigip_username        = flag.String("bigip.username", "user", "Username")
-	bigip_password        = flag.String("bigip.password", "pass", "Password")
-	exporter_bind_address = flag.String("exporter.bind_address", "", "Exporter bind address")
-	exporter_bind_port    = flag.Int("exporter.bind_port", 9142, "Exporter bind port")
-	exporter_partitions   = flag.String("exporter.partitions", "", "A comma separated list of partitions which to export. Default: all")
-	exporter_namespace    = "bigip"
+	"github.com/ExpressenAB/bigip_exporter/collector"
+	"github.com/ExpressenAB/bigip_exporter/config"
+	"github.com/pr8kerl/f5er/f5"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 func listen(exporter_bind_address string, exporter_bind_port int) {
@@ -39,22 +28,28 @@ func listen(exporter_bind_address string, exporter_bind_port int) {
 }
 
 func main() {
-	flag.Parse()
-	bigip_endpoint := *bigip_host + ":" + strconv.Itoa(*bigip_port)
+	config := config.GetConfig()
+
+	if config.Exporter_config.Exporter_debug {
+		log.Printf("Config: %v", config)
+	}
+
+	bigip_endpoint := config.Bigip_config.Bigip_host + ":" + strconv.Itoa(config.Bigip_config.Bigip_port)
 	var exporter_partitions_list []string
-	if *exporter_partitions != "" {
-		exporter_partitions_list = strings.Split(*exporter_partitions, ",")
+	if config.Exporter_config.Exporter_partitions != "" {
+		exporter_partitions_list = strings.Split(config.Exporter_config.Exporter_partitions, ",")
 	} else {
 		exporter_partitions_list = nil
 	}
-	auth_method:=f5.TOKEN
-	if *bigip_basic_auth {
-	  auth_method=f5.BASIC_AUTH
+	auth_method := f5.TOKEN
+	if config.Bigip_config.Bigip_basic_auth {
+		auth_method = f5.BASIC_AUTH
 	}
-	bigip := f5.New(bigip_endpoint, *bigip_username, *bigip_password, auth_method)
 
-	_, bigipCollector := collector.NewBigIpCollector(bigip, exporter_namespace, exporter_partitions_list)
+	bigip := f5.New(bigip_endpoint, config.Bigip_config.Bigip_username, config.Bigip_config.Bigip_password, auth_method)
+
+	_, bigipCollector := collector.NewBigIpCollector(bigip, config.Exporter_config.Exporter_namespace, exporter_partitions_list)
 
 	prometheus.MustRegister(bigipCollector)
-	listen(*exporter_bind_address, *exporter_bind_port)
+	listen(config.Exporter_config.Exporter_bind_address, config.Exporter_config.Exporter_bind_port)
 }
