@@ -5,36 +5,72 @@ Prometheus exporter for BIG-IP statistics. Uses iControl REST API.
 The latest version is 0.2.2. All releases can be found under [Releases](https://github.com/ExpressenAB/bigip_exporter/releases) and docker images are available at [Docker Hub](https://hub.docker.com/r/expressenab/bigip_exporter/tags/)(Thanks to [0x46616c6b](https://github.com/0x46616c6b)).
 
 ## Usage
-The bigip_exporter is easy to use. Example: 
+The bigip_exporter is easy to use. Example:
 ```
 ./bigip_exporter -bigip.host <bigip-host> -bigip.port 443 -bigip.username admin -bigip.password admin
-
 ```
+
 Alternatively, passing a configuration file:
 ```
 ./bigip_exporter -bigip.host <bigip-host> -bigip.port 443 -exporter.config my_config_file.yml
 ```
-NOTE: The configuration file can contain just a subset of all options and it will override command line arguments.
 
-Or, if you prefer, you can run it in a docker container
+Or, using environment variables to pass you parameters
+```
+export BE_BIGIP_HOST=<bigip-host>
+export BE_BIGIP_PORT=443
+export BE_EXPORTER_BIND_PORT=
+./bigip_exporter
+```
+
+### Docker
+The bigip_exporter is also available as a docker image.
 ```
 docker run -p 9142:9142 expressenab/bigip_exporter -bigip.host <bigip-host> -bigip.port 443 -bigip.username admin -bigip.password admin
 ```
 
-### Flags
+### Parameters
+Parameters can be passed to the exporter in three different ways. They can be passed using flags, environment variables, a configuration file or a combination of the three. The precedence order is as follows with each item taking precedence over the item below it:
+
+- flag
+- env
+- config
+
+#### Flags
+This application now uses [pflag](https://github.com/spf13/pflag) instead of the standard flag library. Therefore all flags now follow the POSIX standard and should be preceeded by `--`
+
 Flag | Description | Default
 -----|-------------|---------
--bigip.basic_auth | Use HTTP Basic instead of Token for authentication | false
--bigip.host | BIG-IP host | localhost
--bigip.port | BIG-IP port | 443
--bigip.username | BIG-IP username | user
--bigip.password | BIG-IP password | pass
--exporter.bind_address | The address the exporter should bind to | All interfaces
--exporter.bind_port | Which port the exporter should listen on | 9142
--exporter.partitions | A comma separated list containing the partitions that should be exported | All partitions
--exporter.namespace | The namespace used in prometheus labels | bigip
--exporter.config | A path to a yaml configuration file | none
--exporter.debug | Print configuration on startup | False
+bigip.basic_auth | Use HTTP Basic instead of Token for authentication | false
+bigip.host | BIG-IP host | localhost
+bigip.port | BIG-IP port | 443
+bigip.username | BIG-IP username | user
+bigip.password | BIG-IP password | pass
+exporter.bind_address | The address the exporter should bind to | All interfaces
+exporter.bind_port | Which port the exporter should listen on | 9142
+exporter.partitions | A comma separated list containing the partitions that should be exported | All partitions
+exporter.namespace | The namespace used in prometheus labels | bigip
+exporter.config | A path to a yaml configuration file | none
+exporter.debug | Print configuration on startup | False
+
+#### Environment variables
+All options available as flags can be passed as environment variables. Below is a table of flag->environment variable mappings
+
+Flag | Environment variable
+-----|---------------------
+bigip.basic_auth | BE_BIGIP_BASIC_AUTH
+bigip.host | BE_BIGIP_HOST
+bigip.port | BE_BIGIP_PORT
+bigip.username | BE_BIGIP_USERNAME
+bigip.password | BE_BIGIP_PASSWORD
+exporter.bind_address | BE_EXPORTER_BIND_ADDRESS
+exporter.bind_port | BE_EXPORTER_BIND_PORT
+exporter.partitions | BE_EXPORTER_PARTITIONS
+exporter.namespace | BE_EXPORTER_NAMESPACE
+exporter.debug | BE_EXPORTER_DEBUG
+
+#### Configuration file
+Take a look at this [example configuration file](https://github.com/ExpressenAB/bigip_exporter/blob/master/example_bigip_exporter.yml)
 
 ## Implemented metrics
 * Virtual Server
