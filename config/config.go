@@ -49,10 +49,7 @@ func init() {
 	registerFlags()
 	bindFlags()
 	bindEnvs()
-	err := flag.Parse()
-	if err != nil {
-		log.Printf("%s", err)
-	}
+	flag.Parse()
 
 	if viper.GetString("exporter.config") != "" {
 		readConfigFile(viper.GetString("exporter.config"))
