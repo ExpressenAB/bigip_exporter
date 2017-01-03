@@ -12,7 +12,7 @@ type poolCollector struct {
 	metrics                   map[string]poolMetric
 	bigip                     *f5.Device
 	partitions_list           []string
-	collector_scrape_status   *prometheus.CounterVec
+	collector_scrape_status   *prometheus.GaugeVec
 	collector_scrape_duration *prometheus.SummaryVec
 }
 
@@ -321,8 +321,8 @@ func NewPoolCollector(bigip *f5.Device, namespace string, partitions_list []stri
 				valueType: prometheus.GaugeValue,
 			},
 		},
-		collector_scrape_status: prometheus.NewCounterVec(
-			prometheus.CounterOpts{
+		collector_scrape_status: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
 				Namespace: namespace,
 				Name:      "collector_scrape_status",
 				Help:      "collector_scrape_status",
