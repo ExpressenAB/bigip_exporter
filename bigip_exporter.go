@@ -16,7 +16,7 @@ var (
 	logger = loggo.GetLogger("")
 )
 
-func listen(exporter_bind_address string, exporter_bind_port int) {
+func listen(exporterBindAddress string, exporterBindPort int) {
 	http.Handle("/metrics", prometheus.Handler())
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`<html>
@@ -27,29 +27,29 @@ func listen(exporter_bind_address string, exporter_bind_port int) {
 			</body>
 			</html>`))
 	})
-	exporter_bind := exporter_bind_address + ":" + strconv.Itoa(exporter_bind_port)
-	logger.Criticalf("Process failed: %s", http.ListenAndServe(exporter_bind, nil))
+	exporterBind := exporterBindAddress + ":" + strconv.Itoa(exporterBindPort)
+	logger.Criticalf("Process failed: %s", http.ListenAndServe(exporterBind, nil))
 }
 
 func main() {
 	config := config.GetConfig()
 	logger.Debugf("Config: %v", config)
 
-	bigip_endpoint := config.Bigip.Host + ":" + strconv.Itoa(config.Bigip.Port)
-	var exporter_partitions_list []string
+	bigipEndpoint := config.Bigip.Host + ":" + strconv.Itoa(config.Bigip.Port)
+	var exporterPartitionsList []string
 	if config.Exporter.Partitions != "" {
-		exporter_partitions_list = strings.Split(config.Exporter.Partitions, ",")
+		exporterPartitionsList = strings.Split(config.Exporter.Partitions, ",")
 	} else {
-		exporter_partitions_list = nil
+		exporterPartitionsList = nil
 	}
-	auth_method := f5.TOKEN
+	authMethod := f5.TOKEN
 	if config.Bigip.BasicAuth {
-		auth_method = f5.BASIC_AUTH
+		authMethod = f5.BASIC_AUTH
 	}
 
-	bigip := f5.New(bigip_endpoint, config.Bigip.Username, config.Bigip.Password, auth_method)
+	bigip := f5.New(bigipEndpoint, config.Bigip.Username, config.Bigip.Password, authMethod)
 
-	_, bigipCollector := collector.NewBigIpCollector(bigip, config.Exporter.Namespace, exporter_partitions_list)
+	bigipCollector, _ := collector.NewBigipCollector(bigip, config.Exporter.Namespace, exporterPartitionsList)
 
 	prometheus.MustRegister(bigipCollector)
 	listen(config.Exporter.BindAddress, config.Exporter.BindPort)

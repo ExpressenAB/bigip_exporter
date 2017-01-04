@@ -8,12 +8,13 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-type poolCollector struct {
+// A PoolCollector implements the prometheus.Collector.
+type PoolCollector struct {
 	metrics                   map[string]poolMetric
 	bigip                     *f5.Device
-	partitions_list           []string
-	collector_scrape_status   *prometheus.GaugeVec
-	collector_scrape_duration *prometheus.SummaryVec
+	partitionsList           []string
+	collectorScrapeStatus   *prometheus.GaugeVec
+	collectorScrapeDuration *prometheus.SummaryVec
 }
 
 type poolMetric struct {
@@ -22,12 +23,13 @@ type poolMetric struct {
 	valueType prometheus.ValueType
 }
 
-func NewPoolCollector(bigip *f5.Device, namespace string, partitions_list []string) (error, *poolCollector) {
+// NewPoolCollector returns a collector that collecting pool statistics
+func NewPoolCollector(bigip *f5.Device, namespace string, partitionsList []string) (*PoolCollector, error) {
 	var (
 		subsystem  = "pool"
 		labelNames = []string{"partition", "pool"}
 	)
-	return nil, &poolCollector{
+	return &PoolCollector{
 		metrics: map[string]poolMetric{
 			"connqAll_ageMax": {
 				desc: prometheus.NewDesc(
@@ -321,7 +323,7 @@ func NewPoolCollector(bigip *f5.Device, namespace string, partitions_list []stri
 				valueType: prometheus.GaugeValue,
 			},
 		},
-		collector_scrape_status: prometheus.NewGaugeVec(
+		collectorScrapeStatus: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Namespace: namespace,
 				Name:      "collector_scrape_status",
@@ -329,7 +331,7 @@ func NewPoolCollector(bigip *f5.Device, namespace string, partitions_list []stri
 			},
 			[]string{"collector"},
 		),
-		collector_scrape_duration: prometheus.NewSummaryVec(
+		collectorScrapeDuration: prometheus.NewSummaryVec(
 			prometheus.SummaryOpts{
 				Namespace: namespace,
 				Name:      "collector_scrape_duration",
@@ -338,15 +340,16 @@ func NewPoolCollector(bigip *f5.Device, namespace string, partitions_list []stri
 			[]string{"collector"},
 		),
 		bigip:           bigip,
-		partitions_list: partitions_list,
-	}
+		partitionsList: partitionsList,
+	}, nil
 }
 
-func (c *poolCollector) Collect(ch chan<- prometheus.Metric) {
+// Collect collects metrics for BIG-IP pools.
+func (c *PoolCollector) Collect(ch chan<- prometheus.Metric) {
 	start := time.Now()
 	err, allPoolStats := c.bigip.ShowAllPoolStats()
 	if err != nil {
-		c.collector_scrape_status.WithLabelValues("pool").Set(float64(0))
+		c.collectorScrapeStatus.WithLabelValues("pool").Set(float64(0))
 		logger.Warningf("Failed to get statistics for pools")
 	} else {
 		for key, poolStats := range allPoolStats.Entries {
@@ -356,7 +359,7 @@ func (c *poolCollector) Collect(ch chan<- prometheus.Metric) {
 			partition := pathParts[1]
 			poolName := pathParts[len(pathParts)-1]
 
-			if c.partitions_list != nil && !stringInSlice(partition, c.partitions_list) {
+			if c.partitionsList != nil && !stringInSlice(partition, c.partitionsList) {
 				continue
 			}
 
@@ -365,21 +368,22 @@ func (c *poolCollector) Collect(ch chan<- prometheus.Metric) {
 				ch <- prometheus.MustNewConstMetric(metric.desc, metric.valueType, metric.extract(poolStats.NestedStats.Entries), labels...)
 			}
 		}
-		c.collector_scrape_status.WithLabelValues("pool").Set(float64(1))
+		c.collectorScrapeStatus.WithLabelValues("pool").Set(float64(1))
 		logger.Debugf("Successfully fetched statistics for pools")
 	}
 
 	elapsed := time.Since(start)
-	c.collector_scrape_duration.WithLabelValues("pool").Observe(float64(elapsed.Seconds()))
-	c.collector_scrape_status.Collect(ch)
-	c.collector_scrape_duration.Collect(ch)
+	c.collectorScrapeDuration.WithLabelValues("pool").Observe(float64(elapsed.Seconds()))
+	c.collectorScrapeStatus.Collect(ch)
+	c.collectorScrapeDuration.Collect(ch)
 	logger.Debugf("Getting pool statistics took %s", elapsed)
 }
 
-func (c *poolCollector) Describe(ch chan<- *prometheus.Desc) {
+// Describe describes the metrics exported from this collector.
+func (c *PoolCollector) Describe(ch chan<- *prometheus.Desc) {
 	for _, metric := range c.metrics {
 		ch <- metric.desc
 	}
-	c.collector_scrape_status.Describe(ch)
-	c.collector_scrape_duration.Describe(ch)
+	c.collectorScrapeStatus.Describe(ch)
+	c.collectorScrapeDuration.Describe(ch)
 }

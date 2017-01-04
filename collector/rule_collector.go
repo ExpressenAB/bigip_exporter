@@ -8,12 +8,13 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-type ruleCollector struct {
+// A RuleCollector implements the prometheus.Collector.
+type RuleCollector struct {
 	metrics                   map[string]ruleMetric
 	bigip                     *f5.Device
-	partitions_list           []string
-	collector_scrape_status   *prometheus.GaugeVec
-	collector_scrape_duration *prometheus.SummaryVec
+	partitionsList           []string
+	collectorScrapeStatus   *prometheus.GaugeVec
+	collectorScrapeDuration *prometheus.SummaryVec
 }
 
 type ruleMetric struct {
@@ -22,12 +23,13 @@ type ruleMetric struct {
 	valueType prometheus.ValueType
 }
 
-func NewRuleCollector(bigip *f5.Device, namespace string, partitions_list []string) (error, *ruleCollector) {
+// NewRuleCollector returns a collector that collecting iRule statistics
+func NewRuleCollector(bigip *f5.Device, namespace string, partitionsList []string) (*RuleCollector, error) {
 	var (
 		subsystem  = "rule"
 		labelNames = []string{"partition", "rule", "event"}
 	)
-	return nil, &ruleCollector{
+	return &RuleCollector{
 		metrics: map[string]ruleMetric{
 			"priority": {
 				desc: prometheus.NewDesc(
@@ -114,7 +116,7 @@ func NewRuleCollector(bigip *f5.Device, namespace string, partitions_list []stri
 				valueType: prometheus.GaugeValue,
 			},
 		},
-		collector_scrape_status: prometheus.NewGaugeVec(
+		collectorScrapeStatus: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Namespace: namespace,
 				Name:      "collector_scrape_status",
@@ -122,7 +124,7 @@ func NewRuleCollector(bigip *f5.Device, namespace string, partitions_list []stri
 			},
 			[]string{"collector"},
 		),
-		collector_scrape_duration: prometheus.NewSummaryVec(
+		collectorScrapeDuration: prometheus.NewSummaryVec(
 			prometheus.SummaryOpts{
 				Namespace: namespace,
 				Name:      "collector_scrape_duration",
@@ -131,15 +133,16 @@ func NewRuleCollector(bigip *f5.Device, namespace string, partitions_list []stri
 			[]string{"collector"},
 		),
 		bigip:           bigip,
-		partitions_list: partitions_list,
-	}
+		partitionsList: partitionsList,
+	}, nil
 }
 
-func (c *ruleCollector) Collect(ch chan<- prometheus.Metric) {
+// Collect collects metrics for BIG-IP iRules.
+func (c *RuleCollector) Collect(ch chan<- prometheus.Metric) {
 	start := time.Now()
 	err, allRuleStats := c.bigip.ShowAllRuleStats()
 	if err != nil {
-		c.collector_scrape_status.WithLabelValues("rule").Set(float64(0))
+		c.collectorScrapeStatus.WithLabelValues("rule").Set(float64(0))
 		logger.Warningf("Failed to get statistics for rules")
 	} else {
 		for key, ruleStats := range allRuleStats.Entries {
@@ -151,7 +154,7 @@ func (c *ruleCollector) Collect(ch chan<- prometheus.Metric) {
 			ruleName := eventParts[0]
 			event := eventParts[1]
 
-			if c.partitions_list != nil && !stringInSlice(partition, c.partitions_list) {
+			if c.partitionsList != nil && !stringInSlice(partition, c.partitionsList) {
 				continue
 			}
 
@@ -160,21 +163,22 @@ func (c *ruleCollector) Collect(ch chan<- prometheus.Metric) {
 				ch <- prometheus.MustNewConstMetric(metric.desc, metric.valueType, metric.extract(ruleStats.NestedStats.Entries), labels...)
 			}
 		}
-		c.collector_scrape_status.WithLabelValues("rule").Set(float64(1))
+		c.collectorScrapeStatus.WithLabelValues("rule").Set(float64(1))
 		logger.Debugf("Successfully fetched statistics for rules")
 	}
 
 	elapsed := time.Since(start)
-	c.collector_scrape_duration.WithLabelValues("rule").Observe(float64(elapsed.Seconds()))
-	c.collector_scrape_status.Collect(ch)
-	c.collector_scrape_duration.Collect(ch)
+	c.collectorScrapeDuration.WithLabelValues("rule").Observe(float64(elapsed.Seconds()))
+	c.collectorScrapeStatus.Collect(ch)
+	c.collectorScrapeDuration.Collect(ch)
 	logger.Debugf("Getting rule stats took %s", elapsed)
 }
 
-func (c *ruleCollector) Describe(ch chan<- *prometheus.Desc) {
+// Describe describes the metrics exported from this collector.
+func (c *RuleCollector) Describe(ch chan<- *prometheus.Desc) {
 	for _, metric := range c.metrics {
 		ch <- metric.desc
 	}
-	c.collector_scrape_status.Describe(ch)
-	c.collector_scrape_duration.Describe(ch)
+	c.collectorScrapeStatus.Describe(ch)
+	c.collectorScrapeDuration.Describe(ch)
 }
