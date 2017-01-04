@@ -1,11 +1,11 @@
 package collector
 
 import (
-	"github.com/pr8kerl/f5er/f5"
-	"github.com/prometheus/client_golang/prometheus"
-	"log"
 	"strings"
 	"time"
+
+	"github.com/pr8kerl/f5er/f5"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 type vsCollector struct {
@@ -477,10 +477,9 @@ func NewVSCollector(bigip *f5.Device, namespace string, partitions_list []string
 func (c *vsCollector) Collect(ch chan<- prometheus.Metric) {
 	start := time.Now()
 	err, allVirtualServerStats := c.bigip.ShowAllVirtualStats()
-	success := true
 	if err != nil {
-		success = false
-		log.Println(err)
+		c.collector_scrape_status.WithLabelValues("vs").Set(float64(0))
+		logger.Warningf("Failed to get statistics for virtual servers")
 	} else {
 		for key, virtualStats := range allVirtualServerStats.Entries {
 			keyParts := strings.Split(key, "/")
@@ -493,23 +492,20 @@ func (c *vsCollector) Collect(ch chan<- prometheus.Metric) {
 				continue
 			}
 
-			lables := []string{partition, vsName}
+			labels := []string{partition, vsName}
 			for _, metric := range c.metrics {
-				ch <- prometheus.MustNewConstMetric(metric.desc, metric.valueType, metric.extract(virtualStats.NestedStats.Entries), lables...)
+				ch <- prometheus.MustNewConstMetric(metric.desc, metric.valueType, metric.extract(virtualStats.NestedStats.Entries), labels...)
 			}
 		}
-	}
-	elapsed := time.Since(start)
-	if success {
 		c.collector_scrape_status.WithLabelValues("vs").Set(float64(1))
-	} else {
-		c.collector_scrape_status.WithLabelValues("vs").Set(float64(0))
+		logger.Debugf("Successfully fetched statistics for virtual servers")
 	}
+
+	elapsed := time.Since(start)
 	c.collector_scrape_duration.WithLabelValues("vs").Observe(float64(elapsed.Seconds()))
 	c.collector_scrape_status.Collect(ch)
 	c.collector_scrape_duration.Collect(ch)
-	log.Printf("VS was succes: %t", success)
-	log.Printf("Getting VS stats took %s", elapsed)
+	logger.Debugf("Getting virtual server statistics took %s", elapsed)
 }
 
 func (c *vsCollector) Describe(ch chan<- *prometheus.Desc) {

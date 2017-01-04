@@ -1,11 +1,11 @@
 package collector
 
 import (
-	"github.com/pr8kerl/f5er/f5"
-	"github.com/prometheus/client_golang/prometheus"
-	"log"
 	"strings"
 	"time"
+
+	"github.com/pr8kerl/f5er/f5"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 type ruleCollector struct {
@@ -138,10 +138,9 @@ func NewRuleCollector(bigip *f5.Device, namespace string, partitions_list []stri
 func (c *ruleCollector) Collect(ch chan<- prometheus.Metric) {
 	start := time.Now()
 	err, allRuleStats := c.bigip.ShowAllRuleStats()
-	success := true
 	if err != nil {
-		success = false
-		log.Println(err)
+		c.collector_scrape_status.WithLabelValues("rule").Set(float64(0))
+		logger.Warningf("Failed to get statistics for rules")
 	} else {
 		for key, ruleStats := range allRuleStats.Entries {
 			keyParts := strings.Split(key, "/")
@@ -156,23 +155,20 @@ func (c *ruleCollector) Collect(ch chan<- prometheus.Metric) {
 				continue
 			}
 
-			lables := []string{partition, ruleName, event}
+			labels := []string{partition, ruleName, event}
 			for _, metric := range c.metrics {
-				ch <- prometheus.MustNewConstMetric(metric.desc, metric.valueType, metric.extract(ruleStats.NestedStats.Entries), lables...)
+				ch <- prometheus.MustNewConstMetric(metric.desc, metric.valueType, metric.extract(ruleStats.NestedStats.Entries), labels...)
 			}
 		}
-	}
-	elapsed := time.Since(start)
-	if success {
 		c.collector_scrape_status.WithLabelValues("rule").Set(float64(1))
-	} else {
-		c.collector_scrape_status.WithLabelValues("rule").Set(float64(0))
+		logger.Debugf("Successfully fetched statistics for rules")
 	}
+
+	elapsed := time.Since(start)
 	c.collector_scrape_duration.WithLabelValues("rule").Observe(float64(elapsed.Seconds()))
 	c.collector_scrape_status.Collect(ch)
 	c.collector_scrape_duration.Collect(ch)
-	log.Printf("Rule was succes: %t", success)
-	log.Printf("Getting rule stats took %s", elapsed)
+	logger.Debugf("Getting rule stats took %s", elapsed)
 }
 
 func (c *ruleCollector) Describe(ch chan<- *prometheus.Desc) {

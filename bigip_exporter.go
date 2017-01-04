@@ -1,15 +1,19 @@
 package main
 
 import (
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/ExpressenAB/bigip_exporter/collector"
 	"github.com/ExpressenAB/bigip_exporter/config"
+	"github.com/juju/loggo"
 	"github.com/pr8kerl/f5er/f5"
 	"github.com/prometheus/client_golang/prometheus"
+)
+
+var (
+	logger = loggo.GetLogger("")
 )
 
 func listen(exporter_bind_address string, exporter_bind_port int) {
@@ -24,14 +28,12 @@ func listen(exporter_bind_address string, exporter_bind_port int) {
 			</html>`))
 	})
 	exporter_bind := exporter_bind_address + ":" + strconv.Itoa(exporter_bind_port)
-	log.Fatalf("Process failed: %s", http.ListenAndServe(exporter_bind, nil))
+	logger.Criticalf("Process failed: %s", http.ListenAndServe(exporter_bind, nil))
 }
 
 func main() {
 	config := config.GetConfig()
-	if config.Exporter.LogLevel == "debug" {
-		log.Printf("Config: %v", config)
-	}
+	logger.Debugf("Config: %v", config)
 
 	bigip_endpoint := config.Bigip.Host + ":" + strconv.Itoa(config.Bigip.Port)
 	var exporter_partitions_list []string

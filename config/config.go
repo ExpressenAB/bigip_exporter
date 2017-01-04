@@ -1,10 +1,10 @@
 package config
 
 import (
-	"log"
 	"os"
 	"strings"
 
+	"github.com/juju/loggo"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
@@ -31,6 +31,31 @@ type Config struct {
 	Exporter exporterConfig `yaml:"exporter"`
 }
 
+var (
+	logger = loggo.GetLogger("")
+)
+
+func init() {
+	loggo.ConfigureLoggers("<root>=INFO")
+	registerFlags()
+	bindFlags()
+	bindEnvs()
+	flag.Parse()
+
+	if viper.GetString("exporter.config") != "" {
+		readConfigFile(viper.GetString("exporter.config"))
+	}
+
+	log_level := viper.GetString("exporter.log_level")
+
+	if _, validLevel := loggo.ParseLevel(log_level); validLevel {
+		loggo.ConfigureLoggers("<root>=" + strings.ToUpper(log_level))
+		return
+	}
+
+	logger.Warningf("Invalid log level - Using info")
+}
+
 func registerFlags() {
 	flag.Bool("bigip.basic_auth", false, "Use HTTP Basic authentication")
 	flag.String("bigip.host", "localhost", "The host on which f5 resides")
@@ -45,27 +70,13 @@ func registerFlags() {
 	flag.String("exporter.log_level", "info", "Available options are trace, debug, info, warning, error and critical")
 }
 
-func init() {
-	registerFlags()
-	bindFlags()
-	bindEnvs()
-	flag.Parse()
-
-	if viper.GetString("exporter.config") != "" {
-		readConfigFile(viper.GetString("exporter.config"))
-	}
-}
-
-func readConfigFile(fileName string) {
-	file, err := os.Open(fileName)
-	if err != nil {
-		log.Printf("%s", err)
-	}
-	viper.SetConfigType("yaml")
-	err = viper.ReadConfig(file)
-	if err != nil {
-		log.Printf("%s", err)
-	}
+func bindFlags() {
+	flag.VisitAll(func(f *flag.Flag) {
+		err := viper.BindPFlag(f.Name, f)
+		if err != nil {
+			logger.Warningf("Failed to bind flag (%s)", err)
+		}
+	})
 }
 
 func bindEnvs() {
@@ -75,18 +86,22 @@ func bindEnvs() {
 	flag.VisitAll(func(f *flag.Flag) {
 		err := viper.BindEnv(f.Name)
 		if err != nil {
-			log.Printf("%s", err)
+			logger.Warningf("Failed to bind environment variable BE_%s (%s)", strings.ToUpper(strings.Replace(f.Name, ".", "_", -1)), err)
 		}
 	})
 }
 
-func bindFlags() {
-	flag.VisitAll(func(f *flag.Flag) {
-		err := viper.BindPFlag(f.Name, f)
-		if err != nil {
-			log.Printf("%s", err)
-		}
-	})
+func readConfigFile(fileName string) {
+	file, err := os.Open(fileName)
+	if err != nil {
+		logger.Warningf("Failed to open configuration file (%s)", err)
+		return
+	}
+	viper.SetConfigType("yaml")
+	err = viper.ReadConfig(file)
+	if err != nil {
+		logger.Warningf("Failed to read configuration file (%s)", err)
+	}
 }
 
 func GetConfig() *Config {

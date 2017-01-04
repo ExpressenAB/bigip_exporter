@@ -1,11 +1,11 @@
 package collector
 
 import (
-	"github.com/pr8kerl/f5er/f5"
-	"github.com/prometheus/client_golang/prometheus"
-	"log"
 	"strings"
 	"time"
+
+	"github.com/pr8kerl/f5er/f5"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 type poolCollector struct {
@@ -345,10 +345,9 @@ func NewPoolCollector(bigip *f5.Device, namespace string, partitions_list []stri
 func (c *poolCollector) Collect(ch chan<- prometheus.Metric) {
 	start := time.Now()
 	err, allPoolStats := c.bigip.ShowAllPoolStats()
-	success := true
 	if err != nil {
-		success = false
-		log.Println(err)
+		c.collector_scrape_status.WithLabelValues("pool").Set(float64(0))
+		logger.Warningf("Failed to get statistics for pools")
 	} else {
 		for key, poolStats := range allPoolStats.Entries {
 			keyParts := strings.Split(key, "/")
@@ -361,23 +360,20 @@ func (c *poolCollector) Collect(ch chan<- prometheus.Metric) {
 				continue
 			}
 
-			lables := []string{partition, poolName}
+			labels := []string{partition, poolName}
 			for _, metric := range c.metrics {
-				ch <- prometheus.MustNewConstMetric(metric.desc, metric.valueType, metric.extract(poolStats.NestedStats.Entries), lables...)
+				ch <- prometheus.MustNewConstMetric(metric.desc, metric.valueType, metric.extract(poolStats.NestedStats.Entries), labels...)
 			}
 		}
-	}
-	elapsed := time.Since(start)
-	if success {
 		c.collector_scrape_status.WithLabelValues("pool").Set(float64(1))
-	} else {
-		c.collector_scrape_status.WithLabelValues("pool").Set(float64(0))
+		logger.Debugf("Successfully fetched statistics for pools")
 	}
+
+	elapsed := time.Since(start)
 	c.collector_scrape_duration.WithLabelValues("pool").Observe(float64(elapsed.Seconds()))
 	c.collector_scrape_status.Collect(ch)
 	c.collector_scrape_duration.Collect(ch)
-	log.Printf("Pool was succes: %t", success)
-	log.Printf("Getting pool stats took %s", elapsed)
+	logger.Debugf("Getting pool statistics took %s", elapsed)
 }
 
 func (c *poolCollector) Describe(ch chan<- *prometheus.Desc) {
