@@ -1,11 +1,11 @@
 package collector
 
 import (
-	"github.com/pr8kerl/f5er/f5"
-	"github.com/prometheus/client_golang/prometheus"
-	"log"
 	"strings"
 	"time"
+
+	"github.com/pr8kerl/f5er/f5"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 type nodeCollector struct {
@@ -177,10 +177,9 @@ func NewNodeCollector(bigip *f5.Device, namespace string, partitions_list []stri
 func (c *nodeCollector) Collect(ch chan<- prometheus.Metric) {
 	start := time.Now()
 	err, allNodeStats := c.bigip.ShowAllNodeStats()
-	success := true
 	if err != nil {
-		success = false
-		log.Println(err)
+		c.collector_scrape_status.WithLabelValues("node").Set(float64(0))
+		logger.Warningf("Failed to get statistics for nodes (%s)", err)
 	} else {
 		for key, nodeStats := range allNodeStats.Entries {
 			keyParts := strings.Split(key, "/")
@@ -193,23 +192,20 @@ func (c *nodeCollector) Collect(ch chan<- prometheus.Metric) {
 				continue
 			}
 
-			lables := []string{partition, nodeName}
+			labels := []string{partition, nodeName}
 			for _, metric := range c.metrics {
-				ch <- prometheus.MustNewConstMetric(metric.desc, metric.valueType, metric.extract(nodeStats.NestedStats.Entries), lables...)
+				ch <- prometheus.MustNewConstMetric(metric.desc, metric.valueType, metric.extract(nodeStats.NestedStats.Entries), labels...)
 			}
 		}
-	}
-	elapsed := time.Since(start)
-	if success {
 		c.collector_scrape_status.WithLabelValues("node").Set(float64(1))
-	} else {
-		c.collector_scrape_status.WithLabelValues("node").Set(float64(0))
+		logger.Debugf("Successfully fetched statistics for nodes")
 	}
+
+	elapsed := time.Since(start)
 	c.collector_scrape_duration.WithLabelValues("node").Observe(float64(elapsed.Seconds()))
 	c.collector_scrape_status.Collect(ch)
 	c.collector_scrape_duration.Collect(ch)
-	log.Printf("Node was succes: %t", success)
-	log.Printf("Getting node stats took %s", elapsed)
+	logger.Debugf("Getting node statistics took %s", elapsed)
 }
 
 func (c *nodeCollector) Describe(ch chan<- *prometheus.Desc) {

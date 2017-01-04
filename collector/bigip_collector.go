@@ -1,17 +1,22 @@
 package collector
 
 import (
-	"github.com/pr8kerl/f5er/f5"
-	"github.com/prometheus/client_golang/prometheus"
-	"log"
 	"sync"
 	"time"
+
+	"github.com/juju/loggo"
+	"github.com/pr8kerl/f5er/f5"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 type bigipCollector struct {
 	collectors            map[string]prometheus.Collector
 	total_scrape_duration prometheus.Summary
 }
+
+var (
+	logger = loggo.GetLogger("")
+)
 
 func NewBigIpCollector(bigip *f5.Device, namespace string, partitions_list []string) (error, *bigipCollector) {
 	_, vsCollector := NewVSCollector(bigip, namespace, partitions_list)
@@ -49,7 +54,7 @@ func (c *bigipCollector) Collect(ch chan<- prometheus.Metric) {
 	elapsed := time.Since(start)
 	c.total_scrape_duration.Observe(float64(elapsed.Seconds()))
 	ch <- c.total_scrape_duration
-	log.Println(elapsed.Seconds())
+	logger.Debugf("Total collection time was: %s", elapsed)
 }
 
 func (c *bigipCollector) Describe(ch chan<- *prometheus.Desc) {
