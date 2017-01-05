@@ -26,6 +26,7 @@ type exporterConfig struct {
 	LogLevel    string `yaml:"log_level"`
 }
 
+// Config is a container for settings modifiable by the user
 type Config struct {
 	Bigip    bigipConfig    `yaml:"bigip"`
 	Exporter exporterConfig `yaml:"exporter"`
@@ -46,10 +47,10 @@ func init() {
 		readConfigFile(viper.GetString("exporter.config"))
 	}
 
-	log_level := viper.GetString("exporter.log_level")
+	logLevel := viper.GetString("exporter.log_level")
 
-	if _, validLevel := loggo.ParseLevel(log_level); validLevel {
-		loggo.ConfigureLoggers("<root>=" + strings.ToUpper(log_level))
+	if _, validLevel := loggo.ParseLevel(logLevel); validLevel {
+		loggo.ConfigureLoggers("<root>=" + strings.ToUpper(logLevel))
 		return
 	}
 
@@ -104,6 +105,8 @@ func readConfigFile(fileName string) {
 	}
 }
 
+// GetConfig returns an instance of Config containing the resulting parameters
+// to the program
 func GetConfig() *Config {
 	return &Config{
 		Bigip: bigipConfig{

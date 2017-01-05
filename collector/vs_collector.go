@@ -8,12 +8,13 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-type vsCollector struct {
+// A VSCollector implements the prometheus.Collector.
+type VSCollector struct {
 	metrics                   map[string]vsMetric
 	bigip                     *f5.Device
-	partitions_list           []string
-	collector_scrape_status   *prometheus.GaugeVec
-	collector_scrape_duration *prometheus.SummaryVec
+	partitionsList           []string
+	collectorScrapeStatus   *prometheus.GaugeVec
+	collectorScrapeDuration *prometheus.SummaryVec
 }
 
 type vsMetric struct {
@@ -22,12 +23,13 @@ type vsMetric struct {
 	valueType prometheus.ValueType
 }
 
-func NewVSCollector(bigip *f5.Device, namespace string, partitions_list []string) (error, *vsCollector) {
+// NewVSCollector returns a collector that collecting virtual server statistics
+func NewVSCollector(bigip *f5.Device, namespace string, partitionsList []string) (*VSCollector, error) {
 	var (
 		subsystem  = "vs"
 		labelNames = []string{"partition", "vs"}
 	)
-	return nil, &vsCollector{
+	return &VSCollector{
 		metrics: map[string]vsMetric{
 			"syncookie_accepts": {
 				desc: prometheus.NewDesc(
@@ -453,7 +455,7 @@ func NewVSCollector(bigip *f5.Device, namespace string, partitions_list []string
 				valueType: prometheus.GaugeValue,
 			},
 		},
-		collector_scrape_status: prometheus.NewGaugeVec(
+		collectorScrapeStatus: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Namespace: namespace,
 				Name:      "collector_scrape_status",
@@ -461,7 +463,7 @@ func NewVSCollector(bigip *f5.Device, namespace string, partitions_list []string
 			},
 			[]string{"collector"},
 		),
-		collector_scrape_duration: prometheus.NewSummaryVec(
+		collectorScrapeDuration: prometheus.NewSummaryVec(
 			prometheus.SummaryOpts{
 				Namespace: namespace,
 				Name:      "collector_scrape_duration",
@@ -470,15 +472,16 @@ func NewVSCollector(bigip *f5.Device, namespace string, partitions_list []string
 			[]string{"collector"},
 		),
 		bigip:           bigip,
-		partitions_list: partitions_list,
-	}
+		partitionsList: partitionsList,
+	}, nil
 }
 
-func (c *vsCollector) Collect(ch chan<- prometheus.Metric) {
+// Collect collects metrics for BIG-IP virtual servers.
+func (c *VSCollector) Collect(ch chan<- prometheus.Metric) {
 	start := time.Now()
 	err, allVirtualServerStats := c.bigip.ShowAllVirtualStats()
 	if err != nil {
-		c.collector_scrape_status.WithLabelValues("vs").Set(float64(0))
+		c.collectorScrapeStatus.WithLabelValues("vs").Set(float64(0))
 		logger.Warningf("Failed to get statistics for virtual servers")
 	} else {
 		for key, virtualStats := range allVirtualServerStats.Entries {
@@ -488,7 +491,7 @@ func (c *vsCollector) Collect(ch chan<- prometheus.Metric) {
 			partition := pathParts[1]
 			vsName := pathParts[len(pathParts)-1]
 
-			if c.partitions_list != nil && !stringInSlice(partition, c.partitions_list) {
+			if c.partitionsList != nil && !stringInSlice(partition, c.partitionsList) {
 				continue
 			}
 
@@ -497,21 +500,22 @@ func (c *vsCollector) Collect(ch chan<- prometheus.Metric) {
 				ch <- prometheus.MustNewConstMetric(metric.desc, metric.valueType, metric.extract(virtualStats.NestedStats.Entries), labels...)
 			}
 		}
-		c.collector_scrape_status.WithLabelValues("vs").Set(float64(1))
+		c.collectorScrapeStatus.WithLabelValues("vs").Set(float64(1))
 		logger.Debugf("Successfully fetched statistics for virtual servers")
 	}
 
 	elapsed := time.Since(start)
-	c.collector_scrape_duration.WithLabelValues("vs").Observe(float64(elapsed.Seconds()))
-	c.collector_scrape_status.Collect(ch)
-	c.collector_scrape_duration.Collect(ch)
+	c.collectorScrapeDuration.WithLabelValues("vs").Observe(float64(elapsed.Seconds()))
+	c.collectorScrapeStatus.Collect(ch)
+	c.collectorScrapeDuration.Collect(ch)
 	logger.Debugf("Getting virtual server statistics took %s", elapsed)
 }
 
-func (c *vsCollector) Describe(ch chan<- *prometheus.Desc) {
+// Describe describes the metrics exported from this collector.
+func (c *VSCollector) Describe(ch chan<- *prometheus.Desc) {
 	for _, metric := range c.metrics {
 		ch <- metric.desc
 	}
-	c.collector_scrape_status.Describe(ch)
-	c.collector_scrape_duration.Describe(ch)
+	c.collectorScrapeStatus.Describe(ch)
+	c.collectorScrapeDuration.Describe(ch)
 }

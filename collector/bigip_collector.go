@@ -9,38 +9,42 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-type bigipCollector struct {
+// A BigipCollector implements the prometheus.Collector.
+type BigipCollector struct {
 	collectors            map[string]prometheus.Collector
-	total_scrape_duration prometheus.Summary
+	totalScrapeDuration prometheus.Summary
 }
 
 var (
 	logger = loggo.GetLogger("")
 )
 
-func NewBigIpCollector(bigip *f5.Device, namespace string, partitions_list []string) (error, *bigipCollector) {
-	_, vsCollector := NewVSCollector(bigip, namespace, partitions_list)
-	_, poolCollector := NewPoolCollector(bigip, namespace, partitions_list)
-	_, nodeCollector := NewNodeCollector(bigip, namespace, partitions_list)
-	_, ruleCollector := NewRuleCollector(bigip, namespace, partitions_list)
-	return nil, &bigipCollector{
+// NewBigipCollector returns a collector that wraps all the collectors
+func NewBigipCollector(bigip *f5.Device, namespace string, partitionsList []string) (*BigipCollector, error) {
+	vsCollector, _ := NewVSCollector(bigip, namespace, partitionsList)
+	poolCollector, _ := NewPoolCollector(bigip, namespace, partitionsList)
+	nodeCollector, _ := NewNodeCollector(bigip, namespace, partitionsList)
+	ruleCollector, _ := NewRuleCollector(bigip, namespace, partitionsList)
+	return &BigipCollector{
 		collectors: map[string]prometheus.Collector{
 			"node": nodeCollector,
 			"pool": poolCollector,
 			"rule": ruleCollector,
 			"vs":   vsCollector,
 		},
-		total_scrape_duration: prometheus.NewSummary(
+		totalScrapeDuration: prometheus.NewSummary(
 			prometheus.SummaryOpts{
 				Namespace: namespace,
 				Name:      "total_scrape_duration",
 				Help:      "total_scrape_duration",
 			},
 		),
-	}
+	}, nil
 }
 
-func (c *bigipCollector) Collect(ch chan<- prometheus.Metric) {
+// Collect collects all metrics exported by this exporter by delegating
+// to the different collectors
+func (c *BigipCollector) Collect(ch chan<- prometheus.Metric) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(c.collectors))
 	start := time.Now()
@@ -52,14 +56,16 @@ func (c *bigipCollector) Collect(ch chan<- prometheus.Metric) {
 	}
 	wg.Wait()
 	elapsed := time.Since(start)
-	c.total_scrape_duration.Observe(float64(elapsed.Seconds()))
-	ch <- c.total_scrape_duration
+	c.totalScrapeDuration.Observe(float64(elapsed.Seconds()))
+	ch <- c.totalScrapeDuration
 	logger.Debugf("Total collection time was: %s", elapsed)
 }
 
-func (c *bigipCollector) Describe(ch chan<- *prometheus.Desc) {
+// Describe describes all metrics exported by this exporter by delegating
+// to the different collectors
+func (c *BigipCollector) Describe(ch chan<- *prometheus.Desc) {
 	for _, collector := range c.collectors {
 		collector.Describe(ch)
 	}
-	ch <- c.total_scrape_duration.Desc()
+	ch <- c.totalScrapeDuration.Desc()
 }
