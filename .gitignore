@@ -12,5 +12,6 @@
 !vendor/**
 !Dockerfile
 !example_bigip_exporter.yml
+!build.sh
 src
 pkg
