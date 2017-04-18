@@ -87,10 +87,46 @@
 			"revisionTime": "2016-07-15T19:26:07Z"
 		},
 		{
+			"checksumSHA1": "b4Bd+o7lqSpiJr8eYHrfn6Y5iPE=",
+			"path": "github.com/juju/ansiterm",
+			"revision": "35c59b9e0fe275705a71bf5d58ee293f27efbbc4",
+			"revisionTime": "2016-11-07T20:46:39Z"
+		},
+		{
+			"checksumSHA1": "mqeBN4W37/KmjWBQT4xqIQGjGYE=",
+			"path": "github.com/juju/ansiterm/tabwriter",
+			"revision": "35c59b9e0fe275705a71bf5d58ee293f27efbbc4",
+			"revisionTime": "2016-11-07T20:46:39Z"
+		},
+		{
+			"checksumSHA1": "WttBhWbKX60YUiSiyF+mQKpfdVo=",
+			"path": "github.com/juju/loggo",
+			"revision": "3b7ece48644d35850f4ced4c2cbc2cf8413f58e0",
+			"revisionTime": "2016-08-18T02:57:24Z"
+		},
+		{
+			"checksumSHA1": "0nXta8PKYGYicKWeydn0A7ELKcs=",
+			"path": "github.com/lunixbochs/vtclean",
+			"revision": "4fbf7632a2c6d3fbdb9931439bdbbeded02cbe36",
+			"revisionTime": "2016-01-25T03:51:06Z"
+		},
+		{
 			"checksumSHA1": "506eXGmFfB7mgzbMcsdT/UAXJgI=",
 			"path": "github.com/magiconair/properties",
 			"revision": "9c47895dc1ce54302908ab8a43385d1f5df2c11c",
 			"revisionTime": "2016-11-28T00:34:34Z"
+		},
+		{
+			"checksumSHA1": "6wAWOVRtaH7hX48hmw9o7noyy5Q=",
+			"path": "github.com/mattn/go-colorable",
+			"revision": "9056b7a9f2d1f2d96498d6d146acd1f9d5ed3d59",
+			"revisionTime": "2016-06-02T15:08:27Z"
+		},
+		{
+			"checksumSHA1": "NkbetqlpWBi3gP08JDneC+axTKw=",
+			"path": "github.com/mattn/go-isatty",
+			"revision": "56b76bdf51f7708750eac80fa38b952bb9f32639",
+			"revisionTime": "2015-12-11T00:06:21Z"
 		},
 		{
 			"checksumSHA1": "bKMZjd2wPw13VwoE7mBeSv5djFA=",
