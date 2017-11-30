@@ -10,9 +10,10 @@ import (
 
 // A RuleCollector implements the prometheus.Collector.
 type RuleCollector struct {
-	metrics                   map[string]ruleMetric
-	bigip                     *f5.Device
-	partitionsList           []string
+	metrics                 map[string]ruleMetric
+	bigipHost               string
+	bigip                   *f5.Device
+	partitionsList          []string
 	collectorScrapeStatus   *prometheus.GaugeVec
 	collectorScrapeDuration *prometheus.SummaryVec
 }
@@ -24,10 +25,10 @@ type ruleMetric struct {
 }
 
 // NewRuleCollector returns a collector that collecting iRule statistics
-func NewRuleCollector(bigip *f5.Device, namespace string, partitionsList []string) (*RuleCollector, error) {
+func NewRuleCollector(bigip *f5.Device, namespace string, partitionsList []string, bigipHost string) (*RuleCollector, error) {
 	var (
 		subsystem  = "rule"
-		labelNames = []string{"partition", "rule", "event"}
+		labelNames = []string{"host", "partition", "rule", "event"}
 	)
 	return &RuleCollector{
 		metrics: map[string]ruleMetric{
@@ -122,7 +123,7 @@ func NewRuleCollector(bigip *f5.Device, namespace string, partitionsList []strin
 				Name:      "collector_scrape_status",
 				Help:      "collector_scrape_status",
 			},
-			[]string{"collector"},
+			[]string{"host", "collector"},
 		),
 		collectorScrapeDuration: prometheus.NewSummaryVec(
 			prometheus.SummaryOpts{
@@ -130,9 +131,10 @@ func NewRuleCollector(bigip *f5.Device, namespace string, partitionsList []strin
 				Name:      "collector_scrape_duration",
 				Help:      "collector_scrape_duration",
 			},
-			[]string{"collector"},
+			[]string{"host", "collector"},
 		),
-		bigip:           bigip,
+		bigipHost:      bigipHost,
+		bigip:          bigip,
 		partitionsList: partitionsList,
 	}, nil
 }
@@ -158,17 +160,17 @@ func (c *RuleCollector) Collect(ch chan<- prometheus.Metric) {
 				continue
 			}
 
-			labels := []string{partition, ruleName, event}
+			labels := []string{c.bigipHost, partition, ruleName, event}
 			for _, metric := range c.metrics {
 				ch <- prometheus.MustNewConstMetric(metric.desc, metric.valueType, metric.extract(ruleStats.NestedStats.Entries), labels...)
 			}
 		}
-		c.collectorScrapeStatus.WithLabelValues("rule").Set(float64(1))
+		c.collectorScrapeStatus.WithLabelValues(c.bigipHost, "rule").Set(float64(1))
 		logger.Debugf("Successfully fetched statistics for rules")
 	}
 
 	elapsed := time.Since(start)
-	c.collectorScrapeDuration.WithLabelValues("rule").Observe(float64(elapsed.Seconds()))
+	c.collectorScrapeDuration.WithLabelValues(c.bigipHost, "rule").Observe(float64(elapsed.Seconds()))
 	c.collectorScrapeStatus.Collect(ch)
 	c.collectorScrapeDuration.Collect(ch)
 	logger.Debugf("Getting rule stats took %s", elapsed)

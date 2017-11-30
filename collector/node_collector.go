@@ -10,9 +10,10 @@ import (
 
 // A NodeCollector implements the prometheus.Collector.
 type NodeCollector struct {
-	metrics                   map[string]nodeMetric
-	bigip                     *f5.Device
-	partitionsList           []string
+	metrics                 map[string]nodeMetric
+	bigipHost               string
+	bigip                   *f5.Device
+	partitionsList          []string
 	collectorScrapeStatus   *prometheus.GaugeVec
 	collectorScrapeDuration *prometheus.SummaryVec
 }
@@ -24,10 +25,10 @@ type nodeMetric struct {
 }
 
 // NewNodeCollector returns a collector that collecting node statistics
-func NewNodeCollector(bigip *f5.Device, namespace string, partitionsList []string) (*NodeCollector, error) {
+func NewNodeCollector(bigip *f5.Device, namespace string, partitionsList []string, bigipHost string) (*NodeCollector, error) {
 	var (
 		subsystem  = "node"
-		labelNames = []string{"partition", "node"}
+		labelNames = []string{"host", "partition", "node"}
 	)
 	return &NodeCollector{
 		metrics: map[string]nodeMetric{
@@ -161,7 +162,7 @@ func NewNodeCollector(bigip *f5.Device, namespace string, partitionsList []strin
 				Name:      "collector_scrape_status",
 				Help:      "collector_scrape_status",
 			},
-			[]string{"collector"},
+			[]string{"host", "collector"},
 		),
 		collectorScrapeDuration: prometheus.NewSummaryVec(
 			prometheus.SummaryOpts{
@@ -169,9 +170,10 @@ func NewNodeCollector(bigip *f5.Device, namespace string, partitionsList []strin
 				Name:      "collector_scrape_duration",
 				Help:      "collector_scrape_duration",
 			},
-			[]string{"collector"},
+			[]string{"host", "collector"},
 		),
-		bigip:           bigip,
+		bigipHost:      bigipHost,
+		bigip:          bigip,
 		partitionsList: partitionsList,
 	}, nil
 }
@@ -195,17 +197,17 @@ func (c *NodeCollector) Collect(ch chan<- prometheus.Metric) {
 				continue
 			}
 
-			labels := []string{partition, nodeName}
+			labels := []string{c.bigipHost, partition, nodeName}
 			for _, metric := range c.metrics {
 				ch <- prometheus.MustNewConstMetric(metric.desc, metric.valueType, metric.extract(nodeStats.NestedStats.Entries), labels...)
 			}
 		}
-		c.collectorScrapeStatus.WithLabelValues("node").Set(float64(1))
+		c.collectorScrapeStatus.WithLabelValues(c.bigipHost, "node").Set(float64(1))
 		logger.Debugf("Successfully fetched statistics for nodes")
 	}
 
 	elapsed := time.Since(start)
-	c.collectorScrapeDuration.WithLabelValues("node").Observe(float64(elapsed.Seconds()))
+	c.collectorScrapeDuration.WithLabelValues(c.bigipHost, "node").Observe(float64(elapsed.Seconds()))
 	c.collectorScrapeStatus.Collect(ch)
 	c.collectorScrapeDuration.Collect(ch)
 	logger.Debugf("Getting node statistics took %s", elapsed)

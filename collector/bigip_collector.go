@@ -11,8 +11,9 @@ import (
 
 // A BigipCollector implements the prometheus.Collector.
 type BigipCollector struct {
-	collectors            map[string]prometheus.Collector
-	totalScrapeDuration prometheus.Summary
+	bigipHost           string
+	collectors          map[string]prometheus.Collector
+	totalScrapeDuration *prometheus.SummaryVec
 }
 
 var (
@@ -20,11 +21,11 @@ var (
 )
 
 // NewBigipCollector returns a collector that wraps all the collectors
-func NewBigipCollector(bigip *f5.Device, namespace string, partitionsList []string) (*BigipCollector, error) {
-	vsCollector, _ := NewVSCollector(bigip, namespace, partitionsList)
-	poolCollector, _ := NewPoolCollector(bigip, namespace, partitionsList)
-	nodeCollector, _ := NewNodeCollector(bigip, namespace, partitionsList)
-	ruleCollector, _ := NewRuleCollector(bigip, namespace, partitionsList)
+func NewBigipCollector(bigip *f5.Device, namespace string, partitionsList []string, bigipHost string) (*BigipCollector, error) {
+	vsCollector, _ := NewVSCollector(bigip, namespace, partitionsList, bigipHost)
+	poolCollector, _ := NewPoolCollector(bigip, namespace, partitionsList, bigipHost)
+	nodeCollector, _ := NewNodeCollector(bigip, namespace, partitionsList, bigipHost)
+	ruleCollector, _ := NewRuleCollector(bigip, namespace, partitionsList, bigipHost)
 	return &BigipCollector{
 		collectors: map[string]prometheus.Collector{
 			"node": nodeCollector,
@@ -32,13 +33,15 @@ func NewBigipCollector(bigip *f5.Device, namespace string, partitionsList []stri
 			"rule": ruleCollector,
 			"vs":   vsCollector,
 		},
-		totalScrapeDuration: prometheus.NewSummary(
+		totalScrapeDuration: prometheus.NewSummaryVec(
 			prometheus.SummaryOpts{
 				Namespace: namespace,
 				Name:      "total_scrape_duration",
 				Help:      "total_scrape_duration",
 			},
+			[]string{"host"},
 		),
+		bigipHost: bigipHost,
 	}, nil
 }
 
@@ -56,8 +59,8 @@ func (c *BigipCollector) Collect(ch chan<- prometheus.Metric) {
 	}
 	wg.Wait()
 	elapsed := time.Since(start)
-	c.totalScrapeDuration.Observe(float64(elapsed.Seconds()))
-	ch <- c.totalScrapeDuration
+	c.totalScrapeDuration.WithLabelValues(c.bigipHost).Observe(float64(elapsed.Seconds()))
+	c.totalScrapeDuration.Collect(ch)
 	logger.Debugf("Total collection time was: %s", elapsed)
 }
 
@@ -67,5 +70,5 @@ func (c *BigipCollector) Describe(ch chan<- *prometheus.Desc) {
 	for _, collector := range c.collectors {
 		collector.Describe(ch)
 	}
-	ch <- c.totalScrapeDuration.Desc()
+	c.totalScrapeDuration.Describe(ch)
 }

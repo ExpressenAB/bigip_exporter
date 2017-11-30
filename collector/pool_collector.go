@@ -10,9 +10,10 @@ import (
 
 // A PoolCollector implements the prometheus.Collector.
 type PoolCollector struct {
-	metrics                   map[string]poolMetric
-	bigip                     *f5.Device
-	partitionsList           []string
+	metrics                 map[string]poolMetric
+	bigipHost               string
+	bigip                   *f5.Device
+	partitionsList          []string
 	collectorScrapeStatus   *prometheus.GaugeVec
 	collectorScrapeDuration *prometheus.SummaryVec
 }
@@ -24,10 +25,10 @@ type poolMetric struct {
 }
 
 // NewPoolCollector returns a collector that collecting pool statistics
-func NewPoolCollector(bigip *f5.Device, namespace string, partitionsList []string) (*PoolCollector, error) {
+func NewPoolCollector(bigip *f5.Device, namespace string, partitionsList []string, bigipHost string) (*PoolCollector, error) {
 	var (
 		subsystem  = "pool"
-		labelNames = []string{"partition", "pool"}
+		labelNames = []string{"host", "partition", "pool"}
 	)
 	return &PoolCollector{
 		metrics: map[string]poolMetric{
@@ -329,7 +330,7 @@ func NewPoolCollector(bigip *f5.Device, namespace string, partitionsList []strin
 				Name:      "collector_scrape_status",
 				Help:      "collector_scrape_status",
 			},
-			[]string{"collector"},
+			[]string{"host", "collector"},
 		),
 		collectorScrapeDuration: prometheus.NewSummaryVec(
 			prometheus.SummaryOpts{
@@ -337,9 +338,10 @@ func NewPoolCollector(bigip *f5.Device, namespace string, partitionsList []strin
 				Name:      "collector_scrape_duration",
 				Help:      "collector_scrape_duration",
 			},
-			[]string{"collector"},
+			[]string{"host", "collector"},
 		),
-		bigip:           bigip,
+		bigipHost:      bigipHost,
+		bigip:          bigip,
 		partitionsList: partitionsList,
 	}, nil
 }
@@ -363,17 +365,17 @@ func (c *PoolCollector) Collect(ch chan<- prometheus.Metric) {
 				continue
 			}
 
-			labels := []string{partition, poolName}
+			labels := []string{c.bigipHost, partition, poolName}
 			for _, metric := range c.metrics {
 				ch <- prometheus.MustNewConstMetric(metric.desc, metric.valueType, metric.extract(poolStats.NestedStats.Entries), labels...)
 			}
 		}
-		c.collectorScrapeStatus.WithLabelValues("pool").Set(float64(1))
+		c.collectorScrapeStatus.WithLabelValues(c.bigipHost, "pool").Set(float64(1))
 		logger.Debugf("Successfully fetched statistics for pools")
 	}
 
 	elapsed := time.Since(start)
-	c.collectorScrapeDuration.WithLabelValues("pool").Observe(float64(elapsed.Seconds()))
+	c.collectorScrapeDuration.WithLabelValues(c.bigipHost, "pool").Observe(float64(elapsed.Seconds()))
 	c.collectorScrapeStatus.Collect(ch)
 	c.collectorScrapeDuration.Collect(ch)
 	logger.Debugf("Getting pool statistics took %s", elapsed)

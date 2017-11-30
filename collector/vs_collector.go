@@ -10,9 +10,10 @@ import (
 
 // A VSCollector implements the prometheus.Collector.
 type VSCollector struct {
-	metrics                   map[string]vsMetric
-	bigip                     *f5.Device
-	partitionsList           []string
+	metrics                 map[string]vsMetric
+	bigipHost               string
+	bigip                   *f5.Device
+	partitionsList          []string
 	collectorScrapeStatus   *prometheus.GaugeVec
 	collectorScrapeDuration *prometheus.SummaryVec
 }
@@ -24,10 +25,10 @@ type vsMetric struct {
 }
 
 // NewVSCollector returns a collector that collecting virtual server statistics
-func NewVSCollector(bigip *f5.Device, namespace string, partitionsList []string) (*VSCollector, error) {
+func NewVSCollector(bigip *f5.Device, namespace string, partitionsList []string, bigipHost string) (*VSCollector, error) {
 	var (
 		subsystem  = "vs"
-		labelNames = []string{"partition", "vs"}
+		labelNames = []string{"host", "partition", "vs"}
 	)
 	return &VSCollector{
 		metrics: map[string]vsMetric{
@@ -461,7 +462,7 @@ func NewVSCollector(bigip *f5.Device, namespace string, partitionsList []string)
 				Name:      "collector_scrape_status",
 				Help:      "collector_scrape_status",
 			},
-			[]string{"collector"},
+			[]string{"host", "collector"},
 		),
 		collectorScrapeDuration: prometheus.NewSummaryVec(
 			prometheus.SummaryOpts{
@@ -469,9 +470,10 @@ func NewVSCollector(bigip *f5.Device, namespace string, partitionsList []string)
 				Name:      "collector_scrape_duration",
 				Help:      "collector_scrape_duration",
 			},
-			[]string{"collector"},
+			[]string{"host", "collector"},
 		),
-		bigip:           bigip,
+		bigipHost:      bigipHost,
+		bigip:          bigip,
 		partitionsList: partitionsList,
 	}, nil
 }
@@ -495,17 +497,17 @@ func (c *VSCollector) Collect(ch chan<- prometheus.Metric) {
 				continue
 			}
 
-			labels := []string{partition, vsName}
+			labels := []string{c.bigipHost, partition, vsName}
 			for _, metric := range c.metrics {
 				ch <- prometheus.MustNewConstMetric(metric.desc, metric.valueType, metric.extract(virtualStats.NestedStats.Entries), labels...)
 			}
 		}
-		c.collectorScrapeStatus.WithLabelValues("vs").Set(float64(1))
+		c.collectorScrapeStatus.WithLabelValues(c.bigipHost, "vs").Set(float64(1))
 		logger.Debugf("Successfully fetched statistics for virtual servers")
 	}
 
 	elapsed := time.Since(start)
-	c.collectorScrapeDuration.WithLabelValues("vs").Observe(float64(elapsed.Seconds()))
+	c.collectorScrapeDuration.WithLabelValues(c.bigipHost, "vs").Observe(float64(elapsed.Seconds()))
 	c.collectorScrapeStatus.Collect(ch)
 	c.collectorScrapeDuration.Collect(ch)
 	logger.Debugf("Getting virtual server statistics took %s", elapsed)

@@ -49,7 +49,7 @@ func main() {
 
 	bigip := f5.New(bigipEndpoint, config.Bigip.Username, config.Bigip.Password, authMethod)
 
-	bigipCollector, _ := collector.NewBigipCollector(bigip, config.Exporter.Namespace, exporterPartitionsList)
+	bigipCollector, _ := collector.NewBigipCollector(bigip, config.Exporter.Namespace, exporterPartitionsList, config.Bigip.Host)
 
 	prometheus.MustRegister(bigipCollector)
 	listen(config.Exporter.BindAddress, config.Exporter.BindPort)
