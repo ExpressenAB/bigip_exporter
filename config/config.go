@@ -13,7 +13,7 @@ type bigipConfig struct {
 	Username  string `yaml:"username"`
 	Password  string `yaml:"password"`
 	BasicAuth bool   `yaml:"basic_auth"`
-	Host      string `yaml:"host"`
+	//Host      string `yaml:"host"`
 	Port      int    `yaml:"port"`
 }
 
@@ -28,12 +28,12 @@ type exporterConfig struct {
 
 // Config is a container for settings modifiable by the user
 type Config struct {
-	Bigip    bigipConfig    `yaml:"bigip"`
-	Exporter exporterConfig `yaml:"exporter"`
+	Lookup   map[string]bigipConfig `yaml:"lookup"`
+	Exporter exporterConfig 		`yaml:"exporter"`
 }
 
 var (
-	logger = loggo.GetLogger("")
+	logger = loggo.GetLogger("config.go")
 )
 
 func init() {
@@ -66,7 +66,7 @@ func registerFlags() {
 	flag.String("exporter.bind_address", "localhost", "Exporter bind address")
 	flag.Int("exporter.bind_port", 9142, "Exporter bind port")
 	flag.String("exporter.partitions", "", "A comma separated list of partitions which to export. (default: all)")
-	flag.String("exporter.config", "", "bigip_exporter configuration file name.")
+	flag.String("exporter.config", "exporter.config", "bigip_exporter configuration file name.")
 	flag.String("exporter.namespace", "bigip", "bigip_exporter namespace.")
 	flag.String("exporter.log_level", "info", "Available options are trace, debug, info, warning, error and critical")
 }
@@ -108,21 +108,24 @@ func readConfigFile(fileName string) {
 // GetConfig returns an instance of Config containing the resulting parameters
 // to the program
 func GetConfig() *Config {
-	return &Config{
-		Bigip: bigipConfig{
-			Username:  viper.GetString("bigip.username"),
-			Password:  viper.GetString("bigip.password"),
-			BasicAuth: viper.GetBool("bigip.basic_auth"),
-			Host:      viper.GetString("bigip.host"),
-			Port:      viper.GetInt("bigip.port"),
-		},
-		Exporter: exporterConfig{
-			BindAddress: viper.GetString("exporter.bind_address"),
-			BindPort:    viper.GetInt("exporter.bind_port"),
-			Partitions:  viper.GetString("exporter.partitions"),
-			Config:      viper.GetString("exporter.config"),
-			Namespace:   viper.GetString("exporter.namespace"),
-			LogLevel:    viper.GetString("exporter.log_level"),
-		},
+	c := Config{}
+	list := viper.GetStringMap("bigip")
+	c.Lookup = make(map[string]bigipConfig)
+	for k, v := range list {
+		username := v.(map[string]interface{})["username"].(string)
+		pass :=	v.(map[string]interface{})["password"].(string)
+		auth :=	v.(map[string]interface{})["basic_auth"].(bool)
+		port :=	v.(map[string]interface{})["port"].(int)
+		c.Lookup[k] = bigipConfig{username, pass, auth, port}
 	}
+	c.Exporter = exporterConfig{
+		viper.GetString("exporter.bind_address"),
+		viper.GetInt("exporter.bind_port"),
+		viper.GetString("exporter.partitions"),
+		viper.GetString("exporter.config"),
+		viper.GetString("exporter.namespace"),
+		viper.GetString("exporter.log_level"),
+	}
+	logger.Infof("Config: [%v]", c)
+	return &c
 }
