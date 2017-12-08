@@ -22,7 +22,12 @@ export BE_BIGIP_PORT=443
 export BE_EXPORTER_BIND_PORT=
 ./bigip_exporter
 ```
-
+###Use as service
+By default, the service will start and use the config file to get the bind address, port, partitions, namespace, log_level.
+```
+./bigip_exporter --exporter.config bigip_exporter.config
+```
+It will gather all of the BigIPs from exporter config file and create a map bigip configurations to be used when it receives a call from prometheus.
 ### Docker
 The bigip_exporter is also available as a docker image.
 ```

@@ -66,7 +66,7 @@ func registerFlags() {
 	flag.String("exporter.bind_address", "localhost", "Exporter bind address")
 	flag.Int("exporter.bind_port", 9142, "Exporter bind port")
 	flag.String("exporter.partitions", "", "A comma separated list of partitions which to export. (default: all)")
-	flag.String("exporter.config", "bigip_exporter.config", "bigip_exporter configuration file name.")
+	flag.String("exporter.config", "", "bigip_exporter configuration file name.")
 	flag.String("exporter.namespace", "bigip", "bigip_exporter namespace.")
 	flag.String("exporter.log_level", "info", "Available options are trace, debug, info, warning, error and critical")
 }
