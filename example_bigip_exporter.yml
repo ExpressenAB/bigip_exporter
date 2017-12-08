@@ -1,10 +1,15 @@
 ---
 bigip:
-  username: config_username
-  password: config_password
-  basic_auth: False
-  host: 127.0.0.1
-  port: 443
+  biptstlab:
+    username: admin
+    password: password2
+    basic_auth: True
+    port: 443
+  biptstlab2:
+    username: admin2
+    password: password2
+    basic_auth: True
+    port: 443
 exporter:
   bind_address: 0.0.0.0
   bind_port: 9142

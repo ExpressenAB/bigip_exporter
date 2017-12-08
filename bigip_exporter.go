@@ -3,18 +3,12 @@ package main
 import (
 	"net/http"
 	"strconv"
-	//"strings"
-
-	//"github.com/ExpressenAB/bigip_exporter/collector"
 	"github.com/ExpressenAB/bigip_exporter/config"
 	"github.com/juju/loggo"
-	//"github.com/pr8kerl/f5er/f5"
-	//"github.com/prometheus/client_golang/prometheus"
-   	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/prometheus/client_golang/prometheus"
 	"strings"
 	"github.com/pr8kerl/f5er/f5"
 	"github.com/ExpressenAB/bigip_exporter/collector"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 var (
@@ -23,7 +17,7 @@ var (
 )
 
 func listen(exporterBindAddress string, exporterBindPort int) {
-	http.Handle("/metrics", getTarget(promhttp.Handler()))
+	http.Handle("/metrics", getTarget(prometheus.Handler()))
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`<html>
 			<head><title>BIG-IP Exporter</title></head>
