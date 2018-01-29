@@ -7,12 +7,12 @@ The latest version is 1.0.0. All releases can be found under [Releases](https://
 ## Usage
 The bigip_exporter is easy to use. Example:
 ```
-./bigip_exporter -bigip.host <bigip-host> -bigip.port 443 -bigip.username admin -bigip.password admin
+./bigip_exporter --bigip.host <bigip-host> --bigip.port 443 --bigip.username admin --bigip.password admin
 ```
 
 Alternatively, passing a configuration file:
 ```
-./bigip_exporter -bigip.host <bigip-host> -bigip.port 443 -exporter.config my_config_file.yml
+./bigip_exporter --bigip.host <bigip-host> --bigip.port 443 --exporter.config my_config_file.yml
 ```
 
 Or, using environment variables to pass you parameters
@@ -26,7 +26,7 @@ export BE_EXPORTER_BIND_PORT=
 ### Docker
 The bigip_exporter is also available as a docker image.
 ```
-docker run -p 9142:9142 expressenab/bigip_exporter -bigip.host <bigip-host> -bigip.port 443 -bigip.username admin -bigip.password admin
+docker run -p 9142:9142 expressenab/bigip_exporter --bigip.host <bigip-host> --bigip.port 443 --bigip.username admin --bigip.password admin
 ```
 
 ### Parameters
