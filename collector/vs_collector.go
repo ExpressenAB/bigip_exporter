@@ -449,6 +449,10 @@ func NewVSCollector(bigip *f5.Device, namespace string, partitionsList []string)
 				extract: func(entries f5.LBVirtualStatsInnerEntries) float64 {
 					if entries.Status_availabilityState.Description == "available" {
 						return 1
+					} else if entries.Status_availabilityState.Description == "unavailable" {
+						return 2
+					} else if entries.Status_availabilityState.Description == "unknown" {
+						return 4
 					}
 					return 0
 				},
