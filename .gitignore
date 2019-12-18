@@ -13,5 +13,7 @@
 !Dockerfile
 !example_bigip_exporter.yml
 !build.sh
+!go.mod
+!go.sum
 src
 pkg
