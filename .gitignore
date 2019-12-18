@@ -9,7 +9,6 @@
 !*.go
 !.travis.yml
 !Makefile
-!vendor/**
 !Dockerfile
 !example_bigip_exporter.yml
 !build.sh
