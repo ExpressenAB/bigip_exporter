@@ -19,7 +19,7 @@ clean() {
 
 build_windows() {
   echo "Building windows"
-  GOOS=windows GOARCH=amd64 go build .
+  GOOS=windows GOARCH=amd64 go build -mod=vendor .
 }
 
 package_windows() {
@@ -38,7 +38,7 @@ clean_windows() {
 
 build_linux() {
   echo "Building linux"
-  GOOS=linux GOARCH=amd64 go build .
+  GOOS=linux GOARCH=amd64 go build -mod=vendor .
 }
 
 package_linux() {
