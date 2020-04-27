@@ -13,5 +13,13 @@
 !Dockerfile
 !example_bigip_exporter.yml
 !build.sh
+!go.mod
+!go.sum
 src
 pkg
+vendor/**/.travis.yml
+vendor/**/.gitignore
+vendor/**/.editorconfig
+vendor/**/AUTHORS
+vendor/**/AUTHORS.md
+vendor/**/CONTRIBUTORS
