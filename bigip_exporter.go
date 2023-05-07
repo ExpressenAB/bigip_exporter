@@ -10,6 +10,7 @@ import (
 	"github.com/juju/loggo"
 	"github.com/pr8kerl/f5er/f5"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var (
@@ -17,7 +18,7 @@ var (
 )
 
 func listen(exporterBindAddress string, exporterBindPort int) {
-	http.Handle("/metrics", prometheus.Handler())
+	http.Handle("/metrics", promhttp.Handler())
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`<html>
 			<head><title>BIG-IP Exporter</title></head>

@@ -90,12 +90,12 @@ This project uses [Go modules](https://blog.golang.org/using-go-modules).
 ```
 git clone git@github.com:kgaughan/bigip_exporter.git
 cd bigip_exporter
-go build -mod=vendor .
+go build .
 ```
 ### Cross compilation
 Go offers possibility to cross compile the application for different use on a different OS and architecture. This is achieved by setting the environment valiables `GOOS` and `GOARCH`. If you for example want to build for linux on an amd64 architecture the `go build` step can be replaced with the following:
 ```
-GOOS=linux GOARCH=amd64 go build -mod=vendor .
+GOOS=linux GOARCH=amd64 go build .
 ```
 A list of available options for `GOOS` and `GOARCH` is available in the [documentation](https://golang.org/doc/install/source#environment)
 
