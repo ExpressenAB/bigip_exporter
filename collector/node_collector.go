@@ -10,9 +10,9 @@ import (
 
 // A NodeCollector implements the prometheus.Collector.
 type NodeCollector struct {
-	metrics                   map[string]nodeMetric
-	bigip                     *f5.Device
-	partitionsList           []string
+	metrics                 map[string]nodeMetric
+	bigip                   *f5.Device
+	partitionsList          []string
 	collectorScrapeStatus   *prometheus.GaugeVec
 	collectorScrapeDuration *prometheus.SummaryVec
 }
@@ -23,12 +23,13 @@ type nodeMetric struct {
 	valueType prometheus.ValueType
 }
 
-// NewNodeCollector returns a collector that collecting node statistics
+// NewNodeCollector returns a collector that collecting node statistics.
 func NewNodeCollector(bigip *f5.Device, namespace string, partitionsList []string) (*NodeCollector, error) {
 	var (
 		subsystem  = "node"
 		labelNames = []string{"partition", "node"}
 	)
+
 	return &NodeCollector{
 		metrics: map[string]nodeMetric{
 			"serverside_bytesOut": {
@@ -39,7 +40,7 @@ func NewNodeCollector(bigip *f5.Device, namespace string, partitionsList []strin
 					nil,
 				),
 				extract: func(entries f5.LBNodeStatsInnerEntries) float64 {
-					return float64(entries.Serverside_bitsOut.Value / 8)
+					return entries.Serverside_bitsOut.Value / 8
 				},
 				valueType: prometheus.CounterValue,
 			},
@@ -51,7 +52,7 @@ func NewNodeCollector(bigip *f5.Device, namespace string, partitionsList []strin
 					nil,
 				),
 				extract: func(entries f5.LBNodeStatsInnerEntries) float64 {
-					return float64(entries.Serverside_maxConns.Value)
+					return entries.Serverside_maxConns.Value
 				},
 				valueType: prometheus.CounterValue,
 			},
@@ -63,7 +64,7 @@ func NewNodeCollector(bigip *f5.Device, namespace string, partitionsList []strin
 					nil,
 				),
 				extract: func(entries f5.LBNodeStatsInnerEntries) float64 {
-					return float64(entries.Serverside_curConns.Value)
+					return entries.Serverside_curConns.Value
 				},
 				valueType: prometheus.GaugeValue,
 			},
@@ -75,7 +76,7 @@ func NewNodeCollector(bigip *f5.Device, namespace string, partitionsList []strin
 					nil,
 				),
 				extract: func(entries f5.LBNodeStatsInnerEntries) float64 {
-					return float64(entries.Serverside_pktsOut.Value)
+					return entries.Serverside_pktsOut.Value
 				},
 				valueType: prometheus.CounterValue,
 			},
@@ -87,7 +88,7 @@ func NewNodeCollector(bigip *f5.Device, namespace string, partitionsList []strin
 					nil,
 				),
 				extract: func(entries f5.LBNodeStatsInnerEntries) float64 {
-					return float64(entries.TotRequests.Value)
+					return entries.TotRequests.Value
 				},
 				valueType: prometheus.CounterValue,
 			},
@@ -99,7 +100,7 @@ func NewNodeCollector(bigip *f5.Device, namespace string, partitionsList []strin
 					nil,
 				),
 				extract: func(entries f5.LBNodeStatsInnerEntries) float64 {
-					return float64(entries.Serverside_pktsIn.Value)
+					return entries.Serverside_pktsIn.Value
 				},
 				valueType: prometheus.CounterValue,
 			},
@@ -111,7 +112,7 @@ func NewNodeCollector(bigip *f5.Device, namespace string, partitionsList []strin
 					nil,
 				),
 				extract: func(entries f5.LBNodeStatsInnerEntries) float64 {
-					return float64(entries.Serverside_totConns.Value)
+					return entries.Serverside_totConns.Value
 				},
 				valueType: prometheus.CounterValue,
 			},
@@ -123,7 +124,7 @@ func NewNodeCollector(bigip *f5.Device, namespace string, partitionsList []strin
 					nil,
 				),
 				extract: func(entries f5.LBNodeStatsInnerEntries) float64 {
-					return float64(entries.Serverside_bitsIn.Value / 8)
+					return entries.Serverside_bitsIn.Value / 8
 				},
 				valueType: prometheus.CounterValue,
 			},
@@ -135,7 +136,7 @@ func NewNodeCollector(bigip *f5.Device, namespace string, partitionsList []strin
 					nil,
 				),
 				extract: func(entries f5.LBNodeStatsInnerEntries) float64 {
-					return float64(entries.CurSessions.Value)
+					return entries.CurSessions.Value
 				},
 				valueType: prometheus.GaugeValue,
 			},
@@ -171,7 +172,7 @@ func NewNodeCollector(bigip *f5.Device, namespace string, partitionsList []strin
 			},
 			[]string{"collector"},
 		),
-		bigip:           bigip,
+		bigip:          bigip,
 		partitionsList: partitionsList,
 	}, nil
 }
@@ -181,7 +182,7 @@ func (c *NodeCollector) Collect(ch chan<- prometheus.Metric) {
 	start := time.Now()
 	err, allNodeStats := c.bigip.ShowAllNodeStats()
 	if err != nil {
-		c.collectorScrapeStatus.WithLabelValues("node").Set(float64(0))
+		c.collectorScrapeStatus.WithLabelValues("node").Set(0)
 		logger.Warningf("Failed to get statistics for nodes (%s)", err)
 	} else {
 		for key, nodeStats := range allNodeStats.Entries {
@@ -197,15 +198,20 @@ func (c *NodeCollector) Collect(ch chan<- prometheus.Metric) {
 
 			labels := []string{partition, nodeName}
 			for _, metric := range c.metrics {
-				ch <- prometheus.MustNewConstMetric(metric.desc, metric.valueType, metric.extract(nodeStats.NestedStats.Entries), labels...)
+				ch <- prometheus.MustNewConstMetric(
+					metric.desc,
+					metric.valueType,
+					metric.extract(nodeStats.NestedStats.Entries),
+					labels...,
+				)
 			}
 		}
-		c.collectorScrapeStatus.WithLabelValues("node").Set(float64(1))
+		c.collectorScrapeStatus.WithLabelValues("node").Set(1)
 		logger.Debugf("Successfully fetched statistics for nodes")
 	}
 
 	elapsed := time.Since(start)
-	c.collectorScrapeDuration.WithLabelValues("node").Observe(float64(elapsed.Seconds()))
+	c.collectorScrapeDuration.WithLabelValues("node").Observe(elapsed.Seconds())
 	c.collectorScrapeStatus.Collect(ch)
 	c.collectorScrapeDuration.Collect(ch)
 	logger.Debugf("Getting node statistics took %s", elapsed)

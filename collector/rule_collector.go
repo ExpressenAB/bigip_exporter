@@ -10,9 +10,9 @@ import (
 
 // A RuleCollector implements the prometheus.Collector.
 type RuleCollector struct {
-	metrics                   map[string]ruleMetric
-	bigip                     *f5.Device
-	partitionsList           []string
+	metrics                 map[string]ruleMetric
+	bigip                   *f5.Device
+	partitionsList          []string
 	collectorScrapeStatus   *prometheus.GaugeVec
 	collectorScrapeDuration *prometheus.SummaryVec
 }
@@ -23,7 +23,7 @@ type ruleMetric struct {
 	valueType prometheus.ValueType
 }
 
-// NewRuleCollector returns a collector that collecting iRule statistics
+// NewRuleCollector returns a collector that collecting iRule statistics.
 func NewRuleCollector(bigip *f5.Device, namespace string, partitionsList []string) (*RuleCollector, error) {
 	var (
 		subsystem  = "rule"
@@ -39,7 +39,7 @@ func NewRuleCollector(bigip *f5.Device, namespace string, partitionsList []strin
 					nil,
 				),
 				extract: func(entries f5.LBRuleStatsInnerEntries) float64 {
-					return float64(entries.Priority.Value)
+					return entries.Priority.Value
 				},
 				valueType: prometheus.GaugeValue,
 			},
@@ -51,7 +51,7 @@ func NewRuleCollector(bigip *f5.Device, namespace string, partitionsList []strin
 					nil,
 				),
 				extract: func(entries f5.LBRuleStatsInnerEntries) float64 {
-					return float64(entries.Failures.Value)
+					return entries.Failures.Value
 				},
 				valueType: prometheus.CounterValue,
 			},
@@ -63,7 +63,7 @@ func NewRuleCollector(bigip *f5.Device, namespace string, partitionsList []strin
 					nil,
 				),
 				extract: func(entries f5.LBRuleStatsInnerEntries) float64 {
-					return float64(entries.TotalExecutions.Value)
+					return entries.TotalExecutions.Value
 				},
 				valueType: prometheus.CounterValue,
 			},
@@ -75,7 +75,7 @@ func NewRuleCollector(bigip *f5.Device, namespace string, partitionsList []strin
 					nil,
 				),
 				extract: func(entries f5.LBRuleStatsInnerEntries) float64 {
-					return float64(entries.Aborts.Value)
+					return entries.Aborts.Value
 				},
 				valueType: prometheus.CounterValue,
 			},
@@ -87,7 +87,7 @@ func NewRuleCollector(bigip *f5.Device, namespace string, partitionsList []strin
 					nil,
 				),
 				extract: func(entries f5.LBRuleStatsInnerEntries) float64 {
-					return float64(entries.MinCycles.Value)
+					return entries.MinCycles.Value
 				},
 				valueType: prometheus.GaugeValue,
 			},
@@ -99,7 +99,7 @@ func NewRuleCollector(bigip *f5.Device, namespace string, partitionsList []strin
 					nil,
 				),
 				extract: func(entries f5.LBRuleStatsInnerEntries) float64 {
-					return float64(entries.MaxCycles.Value)
+					return entries.MaxCycles.Value
 				},
 				valueType: prometheus.CounterValue,
 			},
@@ -111,7 +111,7 @@ func NewRuleCollector(bigip *f5.Device, namespace string, partitionsList []strin
 					nil,
 				),
 				extract: func(entries f5.LBRuleStatsInnerEntries) float64 {
-					return float64(entries.AvgCycles.Value)
+					return entries.AvgCycles.Value
 				},
 				valueType: prometheus.GaugeValue,
 			},
@@ -132,7 +132,7 @@ func NewRuleCollector(bigip *f5.Device, namespace string, partitionsList []strin
 			},
 			[]string{"collector"},
 		),
-		bigip:           bigip,
+		bigip:          bigip,
 		partitionsList: partitionsList,
 	}, nil
 }
@@ -142,7 +142,7 @@ func (c *RuleCollector) Collect(ch chan<- prometheus.Metric) {
 	start := time.Now()
 	err, allRuleStats := c.bigip.ShowAllRuleStats()
 	if err != nil {
-		c.collectorScrapeStatus.WithLabelValues("rule").Set(float64(0))
+		c.collectorScrapeStatus.WithLabelValues("rule").Set(0)
 		logger.Warningf("Failed to get statistics for rules")
 	} else {
 		for key, ruleStats := range allRuleStats.Entries {
@@ -160,15 +160,20 @@ func (c *RuleCollector) Collect(ch chan<- prometheus.Metric) {
 
 			labels := []string{partition, ruleName, event}
 			for _, metric := range c.metrics {
-				ch <- prometheus.MustNewConstMetric(metric.desc, metric.valueType, metric.extract(ruleStats.NestedStats.Entries), labels...)
+				ch <- prometheus.MustNewConstMetric(
+					metric.desc,
+					metric.valueType,
+					metric.extract(ruleStats.NestedStats.Entries),
+					labels...,
+				)
 			}
 		}
-		c.collectorScrapeStatus.WithLabelValues("rule").Set(float64(1))
+		c.collectorScrapeStatus.WithLabelValues("rule").Set(1)
 		logger.Debugf("Successfully fetched statistics for rules")
 	}
 
 	elapsed := time.Since(start)
-	c.collectorScrapeDuration.WithLabelValues("rule").Observe(float64(elapsed.Seconds()))
+	c.collectorScrapeDuration.WithLabelValues("rule").Observe(elapsed.Seconds())
 	c.collectorScrapeStatus.Collect(ch)
 	c.collectorScrapeDuration.Collect(ch)
 	logger.Debugf("Getting rule stats took %s", elapsed)

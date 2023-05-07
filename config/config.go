@@ -26,15 +26,13 @@ type exporterConfig struct {
 	LogLevel    string `yaml:"log_level"`
 }
 
-// Config is a container for settings modifiable by the user
+// Config is a container for settings modifiable by the user.
 type Config struct {
 	Bigip    bigipConfig    `yaml:"bigip"`
 	Exporter exporterConfig `yaml:"exporter"`
 }
 
-var (
-	logger = loggo.GetLogger("")
-)
+var logger = loggo.GetLogger("")
 
 func init() {
 	loggo.ConfigureLoggers("<root>=INFO")
@@ -48,7 +46,6 @@ func init() {
 	}
 
 	logLevel := viper.GetString("exporter.log_level")
-
 	if _, validLevel := loggo.ParseLevel(logLevel); validLevel {
 		loggo.ConfigureLoggers("<root>=" + strings.ToUpper(logLevel))
 		return
@@ -87,26 +84,24 @@ func bindEnvs() {
 	flag.VisitAll(func(f *flag.Flag) {
 		err := viper.BindEnv(f.Name)
 		if err != nil {
-			logger.Warningf("Failed to bind environment variable BE_%s (%s)", strings.ToUpper(strings.Replace(f.Name, ".", "_", -1)), err)
+			logger.Warningf("Failed to bind environment variable BE_%s (%s)", strings.ToUpper(strings.ReplaceAll(f.Name, ".", "_")), err)
 		}
 	})
 }
 
 func readConfigFile(fileName string) {
-	file, err := os.Open(fileName)
-	if err != nil {
+	if file, err := os.Open(fileName); err != nil {
 		logger.Warningf("Failed to open configuration file (%s)", err)
-		return
-	}
-	viper.SetConfigType("yaml")
-	err = viper.ReadConfig(file)
-	if err != nil {
-		logger.Warningf("Failed to read configuration file (%s)", err)
+	} else {
+		viper.SetConfigType("yaml")
+		if err = viper.ReadConfig(file); err != nil {
+			logger.Warningf("Failed to read configuration file (%s)", err)
+		}
 	}
 }
 
 // GetConfig returns an instance of Config containing the resulting parameters
-// to the program
+// to the program.
 func GetConfig() *Config {
 	return &Config{
 		Bigip: bigipConfig{
